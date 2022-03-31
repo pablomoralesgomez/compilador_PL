@@ -91,33 +91,69 @@ functiondcl: 		typeFunction ID '(' paramWrapper ')' '{' expressionWrapper '}'
 
 
 
+/********* REGLAS DECLARACIÓN DE VARIABLES *********/
 variabledcl:		BOOL ID '=' boolExpression ';'
-|					INT ID '=' numericExpression ';'
-|					FLOAT ID '=' numericExpression ';'
+|					INT ID '=' numExpression ';'
+|					FLOAT ID '=' numExpression ';'
 |					CHAR ID '=' charExpression ';'
-|					STRING ID '=' LIT_STRING ';'
+|					STRING ID '=' stringExpression ';'
+|					arraydcl;
+
+
+
+/********* REGLAS DECLARACIÓN DE ARRAY *********/
+arraydcl:			typePrimitive '[' LIT_INT ']' ID ';'
+|					typePrimitive '[' ']' ID '=' ID ';'
+|					FLOAT '[' ']' ID '=' '{' numArrayWrapper '}' ';' 
+|					INT '[' ']' ID '=' '{' numArrayWrapper '}' ';' 
+|					CHAR '[' ']' ID '=' '{' charArrayWrapper '}' ';' 
+|					BOOL '[' ']' ID '=' '{' boolArray '}' ';'; 
+
+boolArrayWrapper:	/* empty */
+|					boolArrayWrapper boolArray;
+
+boolArray:			boolArray
+|					boolArray boolExpression;
+
+charArrayWrapper: 	/* empty */
+|					charArrayWrapper charArray;
+
+charArray:			charArray
+|					charArray ',' charExpression;
+
+numArrayWrapper:	/* empty */
+|					numArrayWrapper numArray;
+
+numArray:			numArray
+|					numArray ',' numExpression;
+
+
+
+/********* REGLAS EXPRESIONES CON STRING *********/
+stringExpression:	LIT_STRING
+|					ID
+|					stringExpression '+' stringExpression;
 
 
 
 /********* REGLAS EXPRESIONES CON CHAR *********/
 charExpression:		LIT_CHAR
-|					valueEvaluation
-|					'(' charExpression ')';
+|					valueEvaluation;
 
 
 
 /********* REGLAS EXPRESIONES NUMERICAS *********/
-numericExpression:	LIT_FLOAT
+numExpression:	LIT_FLOAT
 |					LIT_INT
 |					valueEvaluation
-|					numericExpression '+' numericExpression
-|					numericExpression '-' numericExpression
-|					numericExpression '*' numericExpression
-|					numericExpression '/' numericExpression
-|					numericExpression '%' numericExpression
-|					numericExpression '^' numericExpression
-|					'(' numericExpression ')'
-|					'-' numericExpression;
+|					numExpression '+' numExpression
+|					numExpression '-' numExpression
+|					numExpression '*' numExpression
+|					numExpression '/' numExpression
+|					numExpression '%' numExpression
+|					numExpression '^' numExpression
+|					'(' numExpression ')'
+|					'-' numExpression;
 
 
 
@@ -126,10 +162,10 @@ boolExpression:		boolLiteral
 |					valueEvaluation
 |					NOT boolExpression
 |					boolExpression boolJunction boolExpression
-|					expression comparisonOperator expression
+|					charNumExpression comparisonOperator charNumExpression
 |					'(' boolExpression ')';
 
-comparisonOperator: EQUALS
+comparisonOperator:	EQUALS
 |                   NOT_EQ
 |                   LESS_EQ
 |                   BIGGER_EQ;
@@ -142,9 +178,30 @@ boolLiteral:		TRUE
 
 
 
+/********* REGLAS MISCELANEA PENDIENTE CLASIFICACION *********/
 valueEvaluation:	functionCall
 |					ID '[' LIT_INT ']'
 |					ID;
+
+charNumExpression:	charExpression
+|					numExpression;
+
+expression:			numExpression
+|					charExpression
+|					boolExpression
+|					stringExpression;
+
+
+
+/********* REGLAS LLAMADA A UNA FUNCION*********/
+functionCall:		ID '(' paramsFunctionCallWrapper')' 
+
+paramsFunctionCallWrapper: 	/* empty */
+|							paramsFunctionCall;
+
+paramsFunctionCall: paramsFunctionCall 
+|					paramsFunctionCall ',' expression
+|					paramsFunctionCall ',' ID;
 
 
 
