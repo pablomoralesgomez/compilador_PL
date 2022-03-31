@@ -46,11 +46,13 @@
 %token ID	
 
 
-%%	/* REGLAS GRAMATICALES */
+%%	/********* REGLAS GRAMATICALES *********/
 
 program: header global functionArea;
 
 
+
+/********* REGLAS DEL HEADER *********/
 header: 			/* empty */
 |					HEADER '{' headerWrapper '}';
 
@@ -60,15 +62,26 @@ headerWrapper: 		/* empty */
 headerdcl: 			typeFunction ID '(' paramHeaderWrapper ')' ';';
 
 paramHeaderWrapper: /* empty */
-|					paramHeaderWrapperAux;
+|					paramHeaderWrapperRecursive;
 
-paramHeaderWrapperAux: paramHeader 
-|					   paramHeaderWrapperAux ',' paramHeader;
+paramHeaderWrapperRecursive: 	paramHeader 
+|					   			paramHeaderWrapperRecursive ',' paramHeader;
 			
 paramHeader:		typeVariable ID
 |					typePrimitive '[' ']' ID;
 
 
+
+/********* REGLAS DEL GLOBAL *********/
+global:				/* empty */
+|					GLOBAL '{' globalWrapper '}';
+
+globalWrapper:		/* empty */
+|					globalWrapper variabledcl;
+
+
+
+/********* REGLAS ZONA DE DECLARACIÓN DE FUNCIONES *********/
 functionArea: 		functionWrapper main functionWrapper;
 
 functionWrapper: 	/* empty */
@@ -77,21 +90,74 @@ functionWrapper: 	/* empty */
 functiondcl: 		typeFunction ID '(' paramWrapper ')' '{' expressionWrapper '}'
 
 
+
+variabledcl:		BOOL ID '=' boolExpression ';'
+|					INT ID '=' numericExpression ';'
+|					FLOAT ID '=' numericExpression ';'
+|					CHAR ID '=' charExpression ';'
+|					STRING ID '=' LIT_STRING ';'
+
+
+
+/********* REGLAS EXPRESIONES CON CHAR *********/
+charExpression:		LIT_CHAR
+|					valueEvaluation
+|					'(' charExpression ')';
+
+
+
+/********* REGLAS EXPRESIONES NUMERICAS *********/
+numericExpression:	LIT_FLOAT
+|					LIT_INT
+|					valueEvaluation
+|					numericExpression '+' numericExpression
+|					numericExpression '-' numericExpression
+|					numericExpression '*' numericExpression
+|					numericExpression '/' numericExpression
+|					numericExpression '%' numericExpression
+|					numericExpression '^' numericExpression
+|					'(' numericExpression ')'
+|					'-' numericExpression;
+
+
+
+/********* REGLAS EXPRESIONES BOOLEANAS *********/
+boolExpression:		boolLiteral 
+|					valueEvaluation
+|					NOT boolExpression
+|					boolExpression boolJunction boolExpression
+|					expression comparisonOperator expression
+|					'(' boolExpression ')';
+
+comparisonOperator: EQUALS
+|                   NOT_EQ
+|                   LESS_EQ
+|                   BIGGER_EQ;
+
+boolJunction		OR
+|					AND;
+
+boolLiteral:		TRUE
+|					FALSE;
+
+
+
+valueEvaluation:	functionCall
+|					ID '[' LIT_INT ']'
+|					ID;
+
+
+
+/********* REGLAS TIPOS *********/
 typePrimitive:		BOOL
 |					CHAR
 |					INT
 |					FLOAT;
 
 typeVariable: 		STRING
-|					BOOL
-|					CHAR
-|					INT
-|					FLOAT;
+|					typePrimitive;
 
 typeFunction: 		VOID
-|					BOOL
-|					CHAR
-|					INT
-|					FLOAT;
+|					typePrimitive;
 				
 %%		
