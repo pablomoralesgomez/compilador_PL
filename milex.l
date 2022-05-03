@@ -44,6 +44,8 @@
 
 #define ID				292
 
+#define MAIN			293
+
 int numlin = 1;
 void error(char*);
 
@@ -93,7 +95,10 @@ return						{return RETURN;}
 true						{return TRUE;}
 false						{return FALSE;}
 
+main						{return MAIN;}
+
 [A-Za-z_][A-Za-z0-9_-]*		{return ID;}
+
 
 #.*$						{/* ignoramos los comentarios */}
 [[\]{}().+\-*/%=<>?:,^;] 	{return yytext[0];}
