@@ -1,0 +1,2623 @@
+State 78 conflicts: 1 shift/reduce
+State 81 conflicts: 1 shift/reduce
+State 114 conflicts: 15 shift/reduce
+
+
+Grammar
+
+    0 $accept: program $end
+
+    1 program: header global functionArea
+
+    2 header: %empty
+    3       | HEADER '{' headerWrapper '}'
+
+    4 headerWrapper: %empty
+    5              | headerWrapper headerdcl
+
+    6 headerdcl: typeFunction ID '(' paramWrapper ')' ';'
+
+    7 paramWrapper: %empty
+    8             | paramWrapperRecursive
+
+    9 paramWrapperRecursive: param
+   10                      | paramWrapperRecursive ',' param
+
+   11 param: typeVariable ID
+   12      | typePrimitive '[' ']' ID
+
+   13 global: %empty
+   14       | GLOBAL '{' globalWrapper '}'
+
+   15 globalWrapper: %empty
+   16              | globalWrapper variabledcl
+
+   17 functionArea: functionWrapper main functionWrapper
+
+   18 functionWrapper: %empty
+   19                | functionWrapper functiondcl
+
+   20 functiondcl: typeFunction ID '(' paramWrapper ')' '{' statementWrapper '}'
+
+   21 main: INT MAIN '(' ')' '{' statementWrapper '}'
+
+   22 statementWrapper: %empty
+   23                 | statementWrapper statement
+
+   24 statement: loop
+   25          | conditional
+   26          | variabledcl
+   27          | functionCall ';'
+   28          | varAssign ';'
+   29          | BREAK ';'
+   30          | CONTINUE ';'
+   31          | RETURN expression ';'
+
+   32 loop: forLoop
+   33     | whileLoop
+   34     | DO whileLoop
+
+   35 forLoop: FOR '(' forStatement ')' '{' statementWrapper '}'
+
+   36 forStatement: variabledcl expression ';' varAssign
+
+   37 whileLoop: WHILE '(' expression ')' '{' statementWrapper '}'
+
+   38 conditional: ifCond elifCond elseCond
+
+   39 ifCond: IF '(' expression ')' '{' statementWrapper '}'
+
+   40 elifCond: %empty
+   41         | elifCond ELIF '(' expression ')' '{' statementWrapper '}'
+
+   42 elseCond: %empty
+   43         | ELSE '{' statementWrapper '}'
+
+   44 varAssign: ID assignSymbols expression
+
+   45 assignSymbols: '='
+   46              | ASSIGN_ADD
+   47              | ASSIGN_SUBS
+   48              | ASSIGN_MULT
+   49              | ASSIGN_DIV
+
+   50 variabledcl: typeVariable ID '=' expression ';'
+   51            | arraydcl
+
+   52 arraydcl: typePrimitive '[' LIT_INT ']' ID ';'
+   53         | typePrimitive '[' ']' ID '=' ID ';'
+   54         | typePrimitive '[' ']' ID '=' '{' arrayWrapper '}' ';'
+
+   55 arrayWrapper: %empty
+   56             | array
+
+   57 array: expression
+   58      | array ',' expression
+
+   59 expression: functionCall
+   60           | ID '[' LIT_INT ']'
+   61           | ID
+   62           | literals
+   63           | NOT expression
+   64           | '-' expression
+   65           | '(' expression ')'
+   66           | expression operators expression
+
+   67 literals: LIT_INT
+   68         | LIT_FLOAT
+   69         | LIT_CHAR
+   70         | LIT_STRING
+   71         | boolLiteral
+
+   72 operators: comparisonOperator
+   73          | numOperators
+   74          | boolJunction
+
+   75 comparisonOperator: EQUALS
+   76                   | NOT_EQ
+   77                   | LESS_EQ
+   78                   | BIGGER_EQ
+   79                   | GREATER_EQ
+   80                   | '>'
+   81                   | '<'
+
+   82 boolJunction: OR
+   83             | AND
+
+   84 boolLiteral: TRUE
+   85            | FALSE
+
+   86 numOperators: '+'
+   87             | '-'
+   88             | '*'
+   89             | '/'
+   90             | '^'
+   91             | '%'
+
+   92 functionCall: ID '(' paramsFunctionCallWrapper ')'
+
+   93 paramsFunctionCallWrapper: %empty
+   94                          | paramsFunctionCall
+
+   95 paramsFunctionCall: paramsFunctionCall ',' expression
+   96                   | expression
+
+   97 typePrimitive: BOOL
+   98              | CHAR
+   99              | INT
+  100              | FLOAT
+
+  101 typeVariable: STRING
+  102             | typePrimitive
+
+  103 typeFunction: VOID
+  104             | typePrimitive
+
+
+Terminals, with rules where they appear
+
+    $end (0) 0
+    '%' (37) 91
+    '(' (40) 6 20 21 35 37 39 41 65 92
+    ')' (41) 6 20 21 35 37 39 41 65 92
+    '*' (42) 88
+    '+' (43) 86
+    ',' (44) 10 58 95
+    '-' (45) 64 87
+    '/' (47) 89
+    ';' (59) 6 27 28 29 30 31 36 50 52 53 54
+    '<' (60) 81
+    '=' (61) 45 50 53 54
+    '>' (62) 80
+    '[' (91) 12 52 53 54 60
+    ']' (93) 12 52 53 54 60
+    '^' (94) 90
+    '{' (123) 3 14 20 21 35 37 39 41 43 54
+    '}' (125) 3 14 20 21 35 37 39 41 43 54
+    error (256)
+    IF (258) 39
+    ELIF (259) 41
+    ELSE (260) 43
+    WHILE (261) 37
+    DO (262) 34
+    FOR (263) 35
+    CONTINUE (264) 30
+    BREAK (265) 29
+    AND (266) 83
+    OR (267) 82
+    NOT (268) 63
+    EQUALS (269) 75
+    NOT_EQ (270) 76
+    LESS_EQ (271) 77
+    BIGGER_EQ (272) 78
+    VOID (273) 103
+    INT (274) 21 99
+    FLOAT (275) 100
+    CHAR (276) 98
+    BOOL (277) 97
+    STRING (278) 101
+    HEADER (279) 3
+    GLOBAL (280) 14
+    RETURN (281) 31
+    ASSIGN_ADD (282) 46
+    ASSIGN_SUBS (283) 47
+    ASSIGN_MULT (284) 48
+    ASSIGN_DIV (285) 49
+    LIT_INT (286) 52 60 67
+    LIT_FLOAT (287) 68
+    LIT_CHAR (288) 69
+    LIT_STRING (289) 70
+    TRUE (290) 84
+    FALSE (291) 85
+    ID (292) 6 11 12 20 44 50 52 53 54 60 61 92
+    MAIN (293) 21
+    GREATER_EQ (294) 79
+
+
+Nonterminals, with rules where they appear
+
+    $accept (57)
+        on left: 0
+    program (58)
+        on left: 1
+        on right: 0
+    header (59)
+        on left: 2 3
+        on right: 1
+    headerWrapper (60)
+        on left: 4 5
+        on right: 3 5
+    headerdcl (61)
+        on left: 6
+        on right: 5
+    paramWrapper (62)
+        on left: 7 8
+        on right: 6 20
+    paramWrapperRecursive (63)
+        on left: 9 10
+        on right: 8 10
+    param (64)
+        on left: 11 12
+        on right: 9 10
+    global (65)
+        on left: 13 14
+        on right: 1
+    globalWrapper (66)
+        on left: 15 16
+        on right: 14 16
+    functionArea (67)
+        on left: 17
+        on right: 1
+    functionWrapper (68)
+        on left: 18 19
+        on right: 17 19
+    functiondcl (69)
+        on left: 20
+        on right: 19
+    main (70)
+        on left: 21
+        on right: 17
+    statementWrapper (71)
+        on left: 22 23
+        on right: 20 21 23 35 37 39 41 43
+    statement (72)
+        on left: 24 25 26 27 28 29 30 31
+        on right: 23
+    loop (73)
+        on left: 32 33 34
+        on right: 24
+    forLoop (74)
+        on left: 35
+        on right: 32
+    forStatement (75)
+        on left: 36
+        on right: 35
+    whileLoop (76)
+        on left: 37
+        on right: 33 34
+    conditional (77)
+        on left: 38
+        on right: 25
+    ifCond (78)
+        on left: 39
+        on right: 38
+    elifCond (79)
+        on left: 40 41
+        on right: 38 41
+    elseCond (80)
+        on left: 42 43
+        on right: 38
+    varAssign (81)
+        on left: 44
+        on right: 28 36
+    assignSymbols (82)
+        on left: 45 46 47 48 49
+        on right: 44
+    variabledcl (83)
+        on left: 50 51
+        on right: 16 26 36
+    arraydcl (84)
+        on left: 52 53 54
+        on right: 51
+    arrayWrapper (85)
+        on left: 55 56
+        on right: 54
+    array (86)
+        on left: 57 58
+        on right: 56 58
+    expression (87)
+        on left: 59 60 61 62 63 64 65 66
+        on right: 31 36 37 39 41 44 50 57 58 63 64 65 66 95 96
+    literals (88)
+        on left: 67 68 69 70 71
+        on right: 62
+    operators (89)
+        on left: 72 73 74
+        on right: 66
+    comparisonOperator (90)
+        on left: 75 76 77 78 79 80 81
+        on right: 72
+    boolJunction (91)
+        on left: 82 83
+        on right: 74
+    boolLiteral (92)
+        on left: 84 85
+        on right: 71
+    numOperators (93)
+        on left: 86 87 88 89 90 91
+        on right: 73
+    functionCall (94)
+        on left: 92
+        on right: 27 59
+    paramsFunctionCallWrapper (95)
+        on left: 93 94
+        on right: 92
+    paramsFunctionCall (96)
+        on left: 95 96
+        on right: 94 95
+    typePrimitive (97)
+        on left: 97 98 99 100
+        on right: 12 52 53 54 102 104
+    typeVariable (98)
+        on left: 101 102
+        on right: 11 50
+    typeFunction (99)
+        on left: 103 104
+        on right: 6 20
+
+
+State 0
+
+    0 $accept: . program $end
+
+    HEADER  shift, and go to state 1
+
+    $default  reduce using rule 2 (header)
+
+    program  go to state 2
+    header   go to state 3
+
+
+State 1
+
+    3 header: HEADER . '{' headerWrapper '}'
+
+    '{'  shift, and go to state 4
+
+
+State 2
+
+    0 $accept: program . $end
+
+    $end  shift, and go to state 5
+
+
+State 3
+
+    1 program: header . global functionArea
+
+    GLOBAL  shift, and go to state 6
+
+    $default  reduce using rule 13 (global)
+
+    global  go to state 7
+
+
+State 4
+
+    3 header: HEADER '{' . headerWrapper '}'
+
+    $default  reduce using rule 4 (headerWrapper)
+
+    headerWrapper  go to state 8
+
+
+State 5
+
+    0 $accept: program $end .
+
+    $default  accept
+
+
+State 6
+
+   14 global: GLOBAL . '{' globalWrapper '}'
+
+    '{'  shift, and go to state 9
+
+
+State 7
+
+    1 program: header global . functionArea
+
+    $default  reduce using rule 18 (functionWrapper)
+
+    functionArea     go to state 10
+    functionWrapper  go to state 11
+
+
+State 8
+
+    3 header: HEADER '{' headerWrapper . '}'
+    5 headerWrapper: headerWrapper . headerdcl
+
+    VOID   shift, and go to state 12
+    INT    shift, and go to state 13
+    FLOAT  shift, and go to state 14
+    CHAR   shift, and go to state 15
+    BOOL   shift, and go to state 16
+    '}'    shift, and go to state 17
+
+    headerdcl      go to state 18
+    typePrimitive  go to state 19
+    typeFunction   go to state 20
+
+
+State 9
+
+   14 global: GLOBAL '{' . globalWrapper '}'
+
+    $default  reduce using rule 15 (globalWrapper)
+
+    globalWrapper  go to state 21
+
+
+State 10
+
+    1 program: header global functionArea .
+
+    $default  reduce using rule 1 (program)
+
+
+State 11
+
+   17 functionArea: functionWrapper . main functionWrapper
+   19 functionWrapper: functionWrapper . functiondcl
+
+    VOID   shift, and go to state 12
+    INT    shift, and go to state 22
+    FLOAT  shift, and go to state 14
+    CHAR   shift, and go to state 15
+    BOOL   shift, and go to state 16
+
+    functiondcl    go to state 23
+    main           go to state 24
+    typePrimitive  go to state 19
+    typeFunction   go to state 25
+
+
+State 12
+
+  103 typeFunction: VOID .
+
+    $default  reduce using rule 103 (typeFunction)
+
+
+State 13
+
+   99 typePrimitive: INT .
+
+    $default  reduce using rule 99 (typePrimitive)
+
+
+State 14
+
+  100 typePrimitive: FLOAT .
+
+    $default  reduce using rule 100 (typePrimitive)
+
+
+State 15
+
+   98 typePrimitive: CHAR .
+
+    $default  reduce using rule 98 (typePrimitive)
+
+
+State 16
+
+   97 typePrimitive: BOOL .
+
+    $default  reduce using rule 97 (typePrimitive)
+
+
+State 17
+
+    3 header: HEADER '{' headerWrapper '}' .
+
+    $default  reduce using rule 3 (header)
+
+
+State 18
+
+    5 headerWrapper: headerWrapper headerdcl .
+
+    $default  reduce using rule 5 (headerWrapper)
+
+
+State 19
+
+  104 typeFunction: typePrimitive .
+
+    $default  reduce using rule 104 (typeFunction)
+
+
+State 20
+
+    6 headerdcl: typeFunction . ID '(' paramWrapper ')' ';'
+
+    ID  shift, and go to state 26
+
+
+State 21
+
+   14 global: GLOBAL '{' globalWrapper . '}'
+   16 globalWrapper: globalWrapper . variabledcl
+
+    INT     shift, and go to state 13
+    FLOAT   shift, and go to state 14
+    CHAR    shift, and go to state 15
+    BOOL    shift, and go to state 16
+    STRING  shift, and go to state 27
+    '}'     shift, and go to state 28
+
+    variabledcl    go to state 29
+    arraydcl       go to state 30
+    typePrimitive  go to state 31
+    typeVariable   go to state 32
+
+
+State 22
+
+   21 main: INT . MAIN '(' ')' '{' statementWrapper '}'
+   99 typePrimitive: INT .
+
+    MAIN  shift, and go to state 33
+
+    $default  reduce using rule 99 (typePrimitive)
+
+
+State 23
+
+   19 functionWrapper: functionWrapper functiondcl .
+
+    $default  reduce using rule 19 (functionWrapper)
+
+
+State 24
+
+   17 functionArea: functionWrapper main . functionWrapper
+
+    $default  reduce using rule 18 (functionWrapper)
+
+    functionWrapper  go to state 34
+
+
+State 25
+
+   20 functiondcl: typeFunction . ID '(' paramWrapper ')' '{' statementWrapper '}'
+
+    ID  shift, and go to state 35
+
+
+State 26
+
+    6 headerdcl: typeFunction ID . '(' paramWrapper ')' ';'
+
+    '('  shift, and go to state 36
+
+
+State 27
+
+  101 typeVariable: STRING .
+
+    $default  reduce using rule 101 (typeVariable)
+
+
+State 28
+
+   14 global: GLOBAL '{' globalWrapper '}' .
+
+    $default  reduce using rule 14 (global)
+
+
+State 29
+
+   16 globalWrapper: globalWrapper variabledcl .
+
+    $default  reduce using rule 16 (globalWrapper)
+
+
+State 30
+
+   51 variabledcl: arraydcl .
+
+    $default  reduce using rule 51 (variabledcl)
+
+
+State 31
+
+   52 arraydcl: typePrimitive . '[' LIT_INT ']' ID ';'
+   53         | typePrimitive . '[' ']' ID '=' ID ';'
+   54         | typePrimitive . '[' ']' ID '=' '{' arrayWrapper '}' ';'
+  102 typeVariable: typePrimitive .
+
+    '['  shift, and go to state 37
+
+    $default  reduce using rule 102 (typeVariable)
+
+
+State 32
+
+   50 variabledcl: typeVariable . ID '=' expression ';'
+
+    ID  shift, and go to state 38
+
+
+State 33
+
+   21 main: INT MAIN . '(' ')' '{' statementWrapper '}'
+
+    '('  shift, and go to state 39
+
+
+State 34
+
+   17 functionArea: functionWrapper main functionWrapper .
+   19 functionWrapper: functionWrapper . functiondcl
+
+    VOID   shift, and go to state 12
+    INT    shift, and go to state 13
+    FLOAT  shift, and go to state 14
+    CHAR   shift, and go to state 15
+    BOOL   shift, and go to state 16
+
+    $default  reduce using rule 17 (functionArea)
+
+    functiondcl    go to state 23
+    typePrimitive  go to state 19
+    typeFunction   go to state 25
+
+
+State 35
+
+   20 functiondcl: typeFunction ID . '(' paramWrapper ')' '{' statementWrapper '}'
+
+    '('  shift, and go to state 40
+
+
+State 36
+
+    6 headerdcl: typeFunction ID '(' . paramWrapper ')' ';'
+
+    INT     shift, and go to state 13
+    FLOAT   shift, and go to state 14
+    CHAR    shift, and go to state 15
+    BOOL    shift, and go to state 16
+    STRING  shift, and go to state 27
+
+    $default  reduce using rule 7 (paramWrapper)
+
+    paramWrapper           go to state 41
+    paramWrapperRecursive  go to state 42
+    param                  go to state 43
+    typePrimitive          go to state 44
+    typeVariable           go to state 45
+
+
+State 37
+
+   52 arraydcl: typePrimitive '[' . LIT_INT ']' ID ';'
+   53         | typePrimitive '[' . ']' ID '=' ID ';'
+   54         | typePrimitive '[' . ']' ID '=' '{' arrayWrapper '}' ';'
+
+    LIT_INT  shift, and go to state 46
+    ']'      shift, and go to state 47
+
+
+State 38
+
+   50 variabledcl: typeVariable ID . '=' expression ';'
+
+    '='  shift, and go to state 48
+
+
+State 39
+
+   21 main: INT MAIN '(' . ')' '{' statementWrapper '}'
+
+    ')'  shift, and go to state 49
+
+
+State 40
+
+   20 functiondcl: typeFunction ID '(' . paramWrapper ')' '{' statementWrapper '}'
+
+    INT     shift, and go to state 13
+    FLOAT   shift, and go to state 14
+    CHAR    shift, and go to state 15
+    BOOL    shift, and go to state 16
+    STRING  shift, and go to state 27
+
+    $default  reduce using rule 7 (paramWrapper)
+
+    paramWrapper           go to state 50
+    paramWrapperRecursive  go to state 42
+    param                  go to state 43
+    typePrimitive          go to state 44
+    typeVariable           go to state 45
+
+
+State 41
+
+    6 headerdcl: typeFunction ID '(' paramWrapper . ')' ';'
+
+    ')'  shift, and go to state 51
+
+
+State 42
+
+    8 paramWrapper: paramWrapperRecursive .
+   10 paramWrapperRecursive: paramWrapperRecursive . ',' param
+
+    ','  shift, and go to state 52
+
+    $default  reduce using rule 8 (paramWrapper)
+
+
+State 43
+
+    9 paramWrapperRecursive: param .
+
+    $default  reduce using rule 9 (paramWrapperRecursive)
+
+
+State 44
+
+   12 param: typePrimitive . '[' ']' ID
+  102 typeVariable: typePrimitive .
+
+    '['  shift, and go to state 53
+
+    $default  reduce using rule 102 (typeVariable)
+
+
+State 45
+
+   11 param: typeVariable . ID
+
+    ID  shift, and go to state 54
+
+
+State 46
+
+   52 arraydcl: typePrimitive '[' LIT_INT . ']' ID ';'
+
+    ']'  shift, and go to state 55
+
+
+State 47
+
+   53 arraydcl: typePrimitive '[' ']' . ID '=' ID ';'
+   54         | typePrimitive '[' ']' . ID '=' '{' arrayWrapper '}' ';'
+
+    ID  shift, and go to state 56
+
+
+State 48
+
+   50 variabledcl: typeVariable ID '=' . expression ';'
+
+    NOT         shift, and go to state 57
+    LIT_INT     shift, and go to state 58
+    LIT_FLOAT   shift, and go to state 59
+    LIT_CHAR    shift, and go to state 60
+    LIT_STRING  shift, and go to state 61
+    TRUE        shift, and go to state 62
+    FALSE       shift, and go to state 63
+    ID          shift, and go to state 64
+    '-'         shift, and go to state 65
+    '('         shift, and go to state 66
+
+    expression    go to state 67
+    literals      go to state 68
+    boolLiteral   go to state 69
+    functionCall  go to state 70
+
+
+State 49
+
+   21 main: INT MAIN '(' ')' . '{' statementWrapper '}'
+
+    '{'  shift, and go to state 71
+
+
+State 50
+
+   20 functiondcl: typeFunction ID '(' paramWrapper . ')' '{' statementWrapper '}'
+
+    ')'  shift, and go to state 72
+
+
+State 51
+
+    6 headerdcl: typeFunction ID '(' paramWrapper ')' . ';'
+
+    ';'  shift, and go to state 73
+
+
+State 52
+
+   10 paramWrapperRecursive: paramWrapperRecursive ',' . param
+
+    INT     shift, and go to state 13
+    FLOAT   shift, and go to state 14
+    CHAR    shift, and go to state 15
+    BOOL    shift, and go to state 16
+    STRING  shift, and go to state 27
+
+    param          go to state 74
+    typePrimitive  go to state 44
+    typeVariable   go to state 45
+
+
+State 53
+
+   12 param: typePrimitive '[' . ']' ID
+
+    ']'  shift, and go to state 75
+
+
+State 54
+
+   11 param: typeVariable ID .
+
+    $default  reduce using rule 11 (param)
+
+
+State 55
+
+   52 arraydcl: typePrimitive '[' LIT_INT ']' . ID ';'
+
+    ID  shift, and go to state 76
+
+
+State 56
+
+   53 arraydcl: typePrimitive '[' ']' ID . '=' ID ';'
+   54         | typePrimitive '[' ']' ID . '=' '{' arrayWrapper '}' ';'
+
+    '='  shift, and go to state 77
+
+
+State 57
+
+   63 expression: NOT . expression
+
+    NOT         shift, and go to state 57
+    LIT_INT     shift, and go to state 58
+    LIT_FLOAT   shift, and go to state 59
+    LIT_CHAR    shift, and go to state 60
+    LIT_STRING  shift, and go to state 61
+    TRUE        shift, and go to state 62
+    FALSE       shift, and go to state 63
+    ID          shift, and go to state 64
+    '-'         shift, and go to state 65
+    '('         shift, and go to state 66
+
+    expression    go to state 78
+    literals      go to state 68
+    boolLiteral   go to state 69
+    functionCall  go to state 70
+
+
+State 58
+
+   67 literals: LIT_INT .
+
+    $default  reduce using rule 67 (literals)
+
+
+State 59
+
+   68 literals: LIT_FLOAT .
+
+    $default  reduce using rule 68 (literals)
+
+
+State 60
+
+   69 literals: LIT_CHAR .
+
+    $default  reduce using rule 69 (literals)
+
+
+State 61
+
+   70 literals: LIT_STRING .
+
+    $default  reduce using rule 70 (literals)
+
+
+State 62
+
+   84 boolLiteral: TRUE .
+
+    $default  reduce using rule 84 (boolLiteral)
+
+
+State 63
+
+   85 boolLiteral: FALSE .
+
+    $default  reduce using rule 85 (boolLiteral)
+
+
+State 64
+
+   60 expression: ID . '[' LIT_INT ']'
+   61           | ID .
+   92 functionCall: ID . '(' paramsFunctionCallWrapper ')'
+
+    '['  shift, and go to state 79
+    '('  shift, and go to state 80
+
+    $default  reduce using rule 61 (expression)
+
+
+State 65
+
+   64 expression: '-' . expression
+
+    NOT         shift, and go to state 57
+    LIT_INT     shift, and go to state 58
+    LIT_FLOAT   shift, and go to state 59
+    LIT_CHAR    shift, and go to state 60
+    LIT_STRING  shift, and go to state 61
+    TRUE        shift, and go to state 62
+    FALSE       shift, and go to state 63
+    ID          shift, and go to state 64
+    '-'         shift, and go to state 65
+    '('         shift, and go to state 66
+
+    expression    go to state 81
+    literals      go to state 68
+    boolLiteral   go to state 69
+    functionCall  go to state 70
+
+
+State 66
+
+   65 expression: '(' . expression ')'
+
+    NOT         shift, and go to state 57
+    LIT_INT     shift, and go to state 58
+    LIT_FLOAT   shift, and go to state 59
+    LIT_CHAR    shift, and go to state 60
+    LIT_STRING  shift, and go to state 61
+    TRUE        shift, and go to state 62
+    FALSE       shift, and go to state 63
+    ID          shift, and go to state 64
+    '-'         shift, and go to state 65
+    '('         shift, and go to state 66
+
+    expression    go to state 82
+    literals      go to state 68
+    boolLiteral   go to state 69
+    functionCall  go to state 70
+
+
+State 67
+
+   50 variabledcl: typeVariable ID '=' expression . ';'
+   66 expression: expression . operators expression
+
+    AND         shift, and go to state 83
+    OR          shift, and go to state 84
+    EQUALS      shift, and go to state 85
+    NOT_EQ      shift, and go to state 86
+    LESS_EQ     shift, and go to state 87
+    BIGGER_EQ   shift, and go to state 88
+    '<'         shift, and go to state 89
+    '>'         shift, and go to state 90
+    GREATER_EQ  shift, and go to state 91
+    '+'         shift, and go to state 92
+    '-'         shift, and go to state 93
+    '*'         shift, and go to state 94
+    '/'         shift, and go to state 95
+    '%'         shift, and go to state 96
+    '^'         shift, and go to state 97
+    ';'         shift, and go to state 98
+
+    operators           go to state 99
+    comparisonOperator  go to state 100
+    boolJunction        go to state 101
+    numOperators        go to state 102
+
+
+State 68
+
+   62 expression: literals .
+
+    $default  reduce using rule 62 (expression)
+
+
+State 69
+
+   71 literals: boolLiteral .
+
+    $default  reduce using rule 71 (literals)
+
+
+State 70
+
+   59 expression: functionCall .
+
+    $default  reduce using rule 59 (expression)
+
+
+State 71
+
+   21 main: INT MAIN '(' ')' '{' . statementWrapper '}'
+
+    $default  reduce using rule 22 (statementWrapper)
+
+    statementWrapper  go to state 103
+
+
+State 72
+
+   20 functiondcl: typeFunction ID '(' paramWrapper ')' . '{' statementWrapper '}'
+
+    '{'  shift, and go to state 104
+
+
+State 73
+
+    6 headerdcl: typeFunction ID '(' paramWrapper ')' ';' .
+
+    $default  reduce using rule 6 (headerdcl)
+
+
+State 74
+
+   10 paramWrapperRecursive: paramWrapperRecursive ',' param .
+
+    $default  reduce using rule 10 (paramWrapperRecursive)
+
+
+State 75
+
+   12 param: typePrimitive '[' ']' . ID
+
+    ID  shift, and go to state 105
+
+
+State 76
+
+   52 arraydcl: typePrimitive '[' LIT_INT ']' ID . ';'
+
+    ';'  shift, and go to state 106
+
+
+State 77
+
+   53 arraydcl: typePrimitive '[' ']' ID '=' . ID ';'
+   54         | typePrimitive '[' ']' ID '=' . '{' arrayWrapper '}' ';'
+
+    ID   shift, and go to state 107
+    '{'  shift, and go to state 108
+
+
+State 78
+
+   63 expression: NOT expression .
+   66           | expression . operators expression
+
+    BIGGER_EQ  shift, and go to state 88
+    '^'        shift, and go to state 97
+
+    BIGGER_EQ  [reduce using rule 63 (expression)]
+    $default   reduce using rule 63 (expression)
+
+    operators           go to state 99
+    comparisonOperator  go to state 100
+    boolJunction        go to state 101
+    numOperators        go to state 102
+
+
+State 79
+
+   60 expression: ID '[' . LIT_INT ']'
+
+    LIT_INT  shift, and go to state 109
+
+
+State 80
+
+   92 functionCall: ID '(' . paramsFunctionCallWrapper ')'
+
+    NOT         shift, and go to state 57
+    LIT_INT     shift, and go to state 58
+    LIT_FLOAT   shift, and go to state 59
+    LIT_CHAR    shift, and go to state 60
+    LIT_STRING  shift, and go to state 61
+    TRUE        shift, and go to state 62
+    FALSE       shift, and go to state 63
+    ID          shift, and go to state 64
+    '-'         shift, and go to state 65
+    '('         shift, and go to state 66
+
+    $default  reduce using rule 93 (paramsFunctionCallWrapper)
+
+    expression                 go to state 110
+    literals                   go to state 68
+    boolLiteral                go to state 69
+    functionCall               go to state 70
+    paramsFunctionCallWrapper  go to state 111
+    paramsFunctionCall         go to state 112
+
+
+State 81
+
+   64 expression: '-' expression .
+   66           | expression . operators expression
+
+    BIGGER_EQ  shift, and go to state 88
+    '*'        shift, and go to state 94
+    '/'        shift, and go to state 95
+    '%'        shift, and go to state 96
+    '^'        shift, and go to state 97
+
+    BIGGER_EQ  [reduce using rule 64 (expression)]
+    $default   reduce using rule 64 (expression)
+
+    operators           go to state 99
+    comparisonOperator  go to state 100
+    boolJunction        go to state 101
+    numOperators        go to state 102
+
+
+State 82
+
+   65 expression: '(' expression . ')'
+   66           | expression . operators expression
+
+    AND         shift, and go to state 83
+    OR          shift, and go to state 84
+    EQUALS      shift, and go to state 85
+    NOT_EQ      shift, and go to state 86
+    LESS_EQ     shift, and go to state 87
+    BIGGER_EQ   shift, and go to state 88
+    '<'         shift, and go to state 89
+    '>'         shift, and go to state 90
+    GREATER_EQ  shift, and go to state 91
+    '+'         shift, and go to state 92
+    '-'         shift, and go to state 93
+    '*'         shift, and go to state 94
+    '/'         shift, and go to state 95
+    '%'         shift, and go to state 96
+    '^'         shift, and go to state 97
+    ')'         shift, and go to state 113
+
+    operators           go to state 99
+    comparisonOperator  go to state 100
+    boolJunction        go to state 101
+    numOperators        go to state 102
+
+
+State 83
+
+   83 boolJunction: AND .
+
+    $default  reduce using rule 83 (boolJunction)
+
+
+State 84
+
+   82 boolJunction: OR .
+
+    $default  reduce using rule 82 (boolJunction)
+
+
+State 85
+
+   75 comparisonOperator: EQUALS .
+
+    $default  reduce using rule 75 (comparisonOperator)
+
+
+State 86
+
+   76 comparisonOperator: NOT_EQ .
+
+    $default  reduce using rule 76 (comparisonOperator)
+
+
+State 87
+
+   77 comparisonOperator: LESS_EQ .
+
+    $default  reduce using rule 77 (comparisonOperator)
+
+
+State 88
+
+   78 comparisonOperator: BIGGER_EQ .
+
+    $default  reduce using rule 78 (comparisonOperator)
+
+
+State 89
+
+   81 comparisonOperator: '<' .
+
+    $default  reduce using rule 81 (comparisonOperator)
+
+
+State 90
+
+   80 comparisonOperator: '>' .
+
+    $default  reduce using rule 80 (comparisonOperator)
+
+
+State 91
+
+   79 comparisonOperator: GREATER_EQ .
+
+    $default  reduce using rule 79 (comparisonOperator)
+
+
+State 92
+
+   86 numOperators: '+' .
+
+    $default  reduce using rule 86 (numOperators)
+
+
+State 93
+
+   87 numOperators: '-' .
+
+    $default  reduce using rule 87 (numOperators)
+
+
+State 94
+
+   88 numOperators: '*' .
+
+    $default  reduce using rule 88 (numOperators)
+
+
+State 95
+
+   89 numOperators: '/' .
+
+    $default  reduce using rule 89 (numOperators)
+
+
+State 96
+
+   91 numOperators: '%' .
+
+    $default  reduce using rule 91 (numOperators)
+
+
+State 97
+
+   90 numOperators: '^' .
+
+    $default  reduce using rule 90 (numOperators)
+
+
+State 98
+
+   50 variabledcl: typeVariable ID '=' expression ';' .
+
+    $default  reduce using rule 50 (variabledcl)
+
+
+State 99
+
+   66 expression: expression operators . expression
+
+    NOT         shift, and go to state 57
+    LIT_INT     shift, and go to state 58
+    LIT_FLOAT   shift, and go to state 59
+    LIT_CHAR    shift, and go to state 60
+    LIT_STRING  shift, and go to state 61
+    TRUE        shift, and go to state 62
+    FALSE       shift, and go to state 63
+    ID          shift, and go to state 64
+    '-'         shift, and go to state 65
+    '('         shift, and go to state 66
+
+    expression    go to state 114
+    literals      go to state 68
+    boolLiteral   go to state 69
+    functionCall  go to state 70
+
+
+State 100
+
+   72 operators: comparisonOperator .
+
+    $default  reduce using rule 72 (operators)
+
+
+State 101
+
+   74 operators: boolJunction .
+
+    $default  reduce using rule 74 (operators)
+
+
+State 102
+
+   73 operators: numOperators .
+
+    $default  reduce using rule 73 (operators)
+
+
+State 103
+
+   21 main: INT MAIN '(' ')' '{' statementWrapper . '}'
+   23 statementWrapper: statementWrapper . statement
+
+    IF        shift, and go to state 115
+    WHILE     shift, and go to state 116
+    DO        shift, and go to state 117
+    FOR       shift, and go to state 118
+    CONTINUE  shift, and go to state 119
+    BREAK     shift, and go to state 120
+    INT       shift, and go to state 13
+    FLOAT     shift, and go to state 14
+    CHAR      shift, and go to state 15
+    BOOL      shift, and go to state 16
+    STRING    shift, and go to state 27
+    RETURN    shift, and go to state 121
+    ID        shift, and go to state 122
+    '}'       shift, and go to state 123
+
+    statement      go to state 124
+    loop           go to state 125
+    forLoop        go to state 126
+    whileLoop      go to state 127
+    conditional    go to state 128
+    ifCond         go to state 129
+    varAssign      go to state 130
+    variabledcl    go to state 131
+    arraydcl       go to state 30
+    functionCall   go to state 132
+    typePrimitive  go to state 31
+    typeVariable   go to state 32
+
+
+State 104
+
+   20 functiondcl: typeFunction ID '(' paramWrapper ')' '{' . statementWrapper '}'
+
+    $default  reduce using rule 22 (statementWrapper)
+
+    statementWrapper  go to state 133
+
+
+State 105
+
+   12 param: typePrimitive '[' ']' ID .
+
+    $default  reduce using rule 12 (param)
+
+
+State 106
+
+   52 arraydcl: typePrimitive '[' LIT_INT ']' ID ';' .
+
+    $default  reduce using rule 52 (arraydcl)
+
+
+State 107
+
+   53 arraydcl: typePrimitive '[' ']' ID '=' ID . ';'
+
+    ';'  shift, and go to state 134
+
+
+State 108
+
+   54 arraydcl: typePrimitive '[' ']' ID '=' '{' . arrayWrapper '}' ';'
+
+    NOT         shift, and go to state 57
+    LIT_INT     shift, and go to state 58
+    LIT_FLOAT   shift, and go to state 59
+    LIT_CHAR    shift, and go to state 60
+    LIT_STRING  shift, and go to state 61
+    TRUE        shift, and go to state 62
+    FALSE       shift, and go to state 63
+    ID          shift, and go to state 64
+    '-'         shift, and go to state 65
+    '('         shift, and go to state 66
+
+    $default  reduce using rule 55 (arrayWrapper)
+
+    arrayWrapper  go to state 135
+    array         go to state 136
+    expression    go to state 137
+    literals      go to state 68
+    boolLiteral   go to state 69
+    functionCall  go to state 70
+
+
+State 109
+
+   60 expression: ID '[' LIT_INT . ']'
+
+    ']'  shift, and go to state 138
+
+
+State 110
+
+   66 expression: expression . operators expression
+   96 paramsFunctionCall: expression .
+
+    AND         shift, and go to state 83
+    OR          shift, and go to state 84
+    EQUALS      shift, and go to state 85
+    NOT_EQ      shift, and go to state 86
+    LESS_EQ     shift, and go to state 87
+    BIGGER_EQ   shift, and go to state 88
+    '<'         shift, and go to state 89
+    '>'         shift, and go to state 90
+    GREATER_EQ  shift, and go to state 91
+    '+'         shift, and go to state 92
+    '-'         shift, and go to state 93
+    '*'         shift, and go to state 94
+    '/'         shift, and go to state 95
+    '%'         shift, and go to state 96
+    '^'         shift, and go to state 97
+
+    $default  reduce using rule 96 (paramsFunctionCall)
+
+    operators           go to state 99
+    comparisonOperator  go to state 100
+    boolJunction        go to state 101
+    numOperators        go to state 102
+
+
+State 111
+
+   92 functionCall: ID '(' paramsFunctionCallWrapper . ')'
+
+    ')'  shift, and go to state 139
+
+
+State 112
+
+   94 paramsFunctionCallWrapper: paramsFunctionCall .
+   95 paramsFunctionCall: paramsFunctionCall . ',' expression
+
+    ','  shift, and go to state 140
+
+    $default  reduce using rule 94 (paramsFunctionCallWrapper)
+
+
+State 113
+
+   65 expression: '(' expression ')' .
+
+    $default  reduce using rule 65 (expression)
+
+
+State 114
+
+   66 expression: expression . operators expression
+   66           | expression operators expression .
+
+    AND         shift, and go to state 83
+    OR          shift, and go to state 84
+    EQUALS      shift, and go to state 85
+    NOT_EQ      shift, and go to state 86
+    LESS_EQ     shift, and go to state 87
+    BIGGER_EQ   shift, and go to state 88
+    '<'         shift, and go to state 89
+    '>'         shift, and go to state 90
+    GREATER_EQ  shift, and go to state 91
+    '+'         shift, and go to state 92
+    '-'         shift, and go to state 93
+    '*'         shift, and go to state 94
+    '/'         shift, and go to state 95
+    '%'         shift, and go to state 96
+    '^'         shift, and go to state 97
+
+    AND         [reduce using rule 66 (expression)]
+    OR          [reduce using rule 66 (expression)]
+    EQUALS      [reduce using rule 66 (expression)]
+    NOT_EQ      [reduce using rule 66 (expression)]
+    LESS_EQ     [reduce using rule 66 (expression)]
+    BIGGER_EQ   [reduce using rule 66 (expression)]
+    '<'         [reduce using rule 66 (expression)]
+    '>'         [reduce using rule 66 (expression)]
+    GREATER_EQ  [reduce using rule 66 (expression)]
+    '+'         [reduce using rule 66 (expression)]
+    '-'         [reduce using rule 66 (expression)]
+    '*'         [reduce using rule 66 (expression)]
+    '/'         [reduce using rule 66 (expression)]
+    '%'         [reduce using rule 66 (expression)]
+    '^'         [reduce using rule 66 (expression)]
+    $default    reduce using rule 66 (expression)
+
+    operators           go to state 99
+    comparisonOperator  go to state 100
+    boolJunction        go to state 101
+    numOperators        go to state 102
+
+
+State 115
+
+   39 ifCond: IF . '(' expression ')' '{' statementWrapper '}'
+
+    '('  shift, and go to state 141
+
+
+State 116
+
+   37 whileLoop: WHILE . '(' expression ')' '{' statementWrapper '}'
+
+    '('  shift, and go to state 142
+
+
+State 117
+
+   34 loop: DO . whileLoop
+
+    WHILE  shift, and go to state 116
+
+    whileLoop  go to state 143
+
+
+State 118
+
+   35 forLoop: FOR . '(' forStatement ')' '{' statementWrapper '}'
+
+    '('  shift, and go to state 144
+
+
+State 119
+
+   30 statement: CONTINUE . ';'
+
+    ';'  shift, and go to state 145
+
+
+State 120
+
+   29 statement: BREAK . ';'
+
+    ';'  shift, and go to state 146
+
+
+State 121
+
+   31 statement: RETURN . expression ';'
+
+    NOT         shift, and go to state 57
+    LIT_INT     shift, and go to state 58
+    LIT_FLOAT   shift, and go to state 59
+    LIT_CHAR    shift, and go to state 60
+    LIT_STRING  shift, and go to state 61
+    TRUE        shift, and go to state 62
+    FALSE       shift, and go to state 63
+    ID          shift, and go to state 64
+    '-'         shift, and go to state 65
+    '('         shift, and go to state 66
+
+    expression    go to state 147
+    literals      go to state 68
+    boolLiteral   go to state 69
+    functionCall  go to state 70
+
+
+State 122
+
+   44 varAssign: ID . assignSymbols expression
+   92 functionCall: ID . '(' paramsFunctionCallWrapper ')'
+
+    ASSIGN_ADD   shift, and go to state 148
+    ASSIGN_SUBS  shift, and go to state 149
+    ASSIGN_MULT  shift, and go to state 150
+    ASSIGN_DIV   shift, and go to state 151
+    '='          shift, and go to state 152
+    '('          shift, and go to state 80
+
+    assignSymbols  go to state 153
+
+
+State 123
+
+   21 main: INT MAIN '(' ')' '{' statementWrapper '}' .
+
+    $default  reduce using rule 21 (main)
+
+
+State 124
+
+   23 statementWrapper: statementWrapper statement .
+
+    $default  reduce using rule 23 (statementWrapper)
+
+
+State 125
+
+   24 statement: loop .
+
+    $default  reduce using rule 24 (statement)
+
+
+State 126
+
+   32 loop: forLoop .
+
+    $default  reduce using rule 32 (loop)
+
+
+State 127
+
+   33 loop: whileLoop .
+
+    $default  reduce using rule 33 (loop)
+
+
+State 128
+
+   25 statement: conditional .
+
+    $default  reduce using rule 25 (statement)
+
+
+State 129
+
+   38 conditional: ifCond . elifCond elseCond
+
+    $default  reduce using rule 40 (elifCond)
+
+    elifCond  go to state 154
+
+
+State 130
+
+   28 statement: varAssign . ';'
+
+    ';'  shift, and go to state 155
+
+
+State 131
+
+   26 statement: variabledcl .
+
+    $default  reduce using rule 26 (statement)
+
+
+State 132
+
+   27 statement: functionCall . ';'
+
+    ';'  shift, and go to state 156
+
+
+State 133
+
+   20 functiondcl: typeFunction ID '(' paramWrapper ')' '{' statementWrapper . '}'
+   23 statementWrapper: statementWrapper . statement
+
+    IF        shift, and go to state 115
+    WHILE     shift, and go to state 116
+    DO        shift, and go to state 117
+    FOR       shift, and go to state 118
+    CONTINUE  shift, and go to state 119
+    BREAK     shift, and go to state 120
+    INT       shift, and go to state 13
+    FLOAT     shift, and go to state 14
+    CHAR      shift, and go to state 15
+    BOOL      shift, and go to state 16
+    STRING    shift, and go to state 27
+    RETURN    shift, and go to state 121
+    ID        shift, and go to state 122
+    '}'       shift, and go to state 157
+
+    statement      go to state 124
+    loop           go to state 125
+    forLoop        go to state 126
+    whileLoop      go to state 127
+    conditional    go to state 128
+    ifCond         go to state 129
+    varAssign      go to state 130
+    variabledcl    go to state 131
+    arraydcl       go to state 30
+    functionCall   go to state 132
+    typePrimitive  go to state 31
+    typeVariable   go to state 32
+
+
+State 134
+
+   53 arraydcl: typePrimitive '[' ']' ID '=' ID ';' .
+
+    $default  reduce using rule 53 (arraydcl)
+
+
+State 135
+
+   54 arraydcl: typePrimitive '[' ']' ID '=' '{' arrayWrapper . '}' ';'
+
+    '}'  shift, and go to state 158
+
+
+State 136
+
+   56 arrayWrapper: array .
+   58 array: array . ',' expression
+
+    ','  shift, and go to state 159
+
+    $default  reduce using rule 56 (arrayWrapper)
+
+
+State 137
+
+   57 array: expression .
+   66 expression: expression . operators expression
+
+    AND         shift, and go to state 83
+    OR          shift, and go to state 84
+    EQUALS      shift, and go to state 85
+    NOT_EQ      shift, and go to state 86
+    LESS_EQ     shift, and go to state 87
+    BIGGER_EQ   shift, and go to state 88
+    '<'         shift, and go to state 89
+    '>'         shift, and go to state 90
+    GREATER_EQ  shift, and go to state 91
+    '+'         shift, and go to state 92
+    '-'         shift, and go to state 93
+    '*'         shift, and go to state 94
+    '/'         shift, and go to state 95
+    '%'         shift, and go to state 96
+    '^'         shift, and go to state 97
+
+    $default  reduce using rule 57 (array)
+
+    operators           go to state 99
+    comparisonOperator  go to state 100
+    boolJunction        go to state 101
+    numOperators        go to state 102
+
+
+State 138
+
+   60 expression: ID '[' LIT_INT ']' .
+
+    $default  reduce using rule 60 (expression)
+
+
+State 139
+
+   92 functionCall: ID '(' paramsFunctionCallWrapper ')' .
+
+    $default  reduce using rule 92 (functionCall)
+
+
+State 140
+
+   95 paramsFunctionCall: paramsFunctionCall ',' . expression
+
+    NOT         shift, and go to state 57
+    LIT_INT     shift, and go to state 58
+    LIT_FLOAT   shift, and go to state 59
+    LIT_CHAR    shift, and go to state 60
+    LIT_STRING  shift, and go to state 61
+    TRUE        shift, and go to state 62
+    FALSE       shift, and go to state 63
+    ID          shift, and go to state 64
+    '-'         shift, and go to state 65
+    '('         shift, and go to state 66
+
+    expression    go to state 160
+    literals      go to state 68
+    boolLiteral   go to state 69
+    functionCall  go to state 70
+
+
+State 141
+
+   39 ifCond: IF '(' . expression ')' '{' statementWrapper '}'
+
+    NOT         shift, and go to state 57
+    LIT_INT     shift, and go to state 58
+    LIT_FLOAT   shift, and go to state 59
+    LIT_CHAR    shift, and go to state 60
+    LIT_STRING  shift, and go to state 61
+    TRUE        shift, and go to state 62
+    FALSE       shift, and go to state 63
+    ID          shift, and go to state 64
+    '-'         shift, and go to state 65
+    '('         shift, and go to state 66
+
+    expression    go to state 161
+    literals      go to state 68
+    boolLiteral   go to state 69
+    functionCall  go to state 70
+
+
+State 142
+
+   37 whileLoop: WHILE '(' . expression ')' '{' statementWrapper '}'
+
+    NOT         shift, and go to state 57
+    LIT_INT     shift, and go to state 58
+    LIT_FLOAT   shift, and go to state 59
+    LIT_CHAR    shift, and go to state 60
+    LIT_STRING  shift, and go to state 61
+    TRUE        shift, and go to state 62
+    FALSE       shift, and go to state 63
+    ID          shift, and go to state 64
+    '-'         shift, and go to state 65
+    '('         shift, and go to state 66
+
+    expression    go to state 162
+    literals      go to state 68
+    boolLiteral   go to state 69
+    functionCall  go to state 70
+
+
+State 143
+
+   34 loop: DO whileLoop .
+
+    $default  reduce using rule 34 (loop)
+
+
+State 144
+
+   35 forLoop: FOR '(' . forStatement ')' '{' statementWrapper '}'
+
+    INT     shift, and go to state 13
+    FLOAT   shift, and go to state 14
+    CHAR    shift, and go to state 15
+    BOOL    shift, and go to state 16
+    STRING  shift, and go to state 27
+
+    forStatement   go to state 163
+    variabledcl    go to state 164
+    arraydcl       go to state 30
+    typePrimitive  go to state 31
+    typeVariable   go to state 32
+
+
+State 145
+
+   30 statement: CONTINUE ';' .
+
+    $default  reduce using rule 30 (statement)
+
+
+State 146
+
+   29 statement: BREAK ';' .
+
+    $default  reduce using rule 29 (statement)
+
+
+State 147
+
+   31 statement: RETURN expression . ';'
+   66 expression: expression . operators expression
+
+    AND         shift, and go to state 83
+    OR          shift, and go to state 84
+    EQUALS      shift, and go to state 85
+    NOT_EQ      shift, and go to state 86
+    LESS_EQ     shift, and go to state 87
+    BIGGER_EQ   shift, and go to state 88
+    '<'         shift, and go to state 89
+    '>'         shift, and go to state 90
+    GREATER_EQ  shift, and go to state 91
+    '+'         shift, and go to state 92
+    '-'         shift, and go to state 93
+    '*'         shift, and go to state 94
+    '/'         shift, and go to state 95
+    '%'         shift, and go to state 96
+    '^'         shift, and go to state 97
+    ';'         shift, and go to state 165
+
+    operators           go to state 99
+    comparisonOperator  go to state 100
+    boolJunction        go to state 101
+    numOperators        go to state 102
+
+
+State 148
+
+   46 assignSymbols: ASSIGN_ADD .
+
+    $default  reduce using rule 46 (assignSymbols)
+
+
+State 149
+
+   47 assignSymbols: ASSIGN_SUBS .
+
+    $default  reduce using rule 47 (assignSymbols)
+
+
+State 150
+
+   48 assignSymbols: ASSIGN_MULT .
+
+    $default  reduce using rule 48 (assignSymbols)
+
+
+State 151
+
+   49 assignSymbols: ASSIGN_DIV .
+
+    $default  reduce using rule 49 (assignSymbols)
+
+
+State 152
+
+   45 assignSymbols: '=' .
+
+    $default  reduce using rule 45 (assignSymbols)
+
+
+State 153
+
+   44 varAssign: ID assignSymbols . expression
+
+    NOT         shift, and go to state 57
+    LIT_INT     shift, and go to state 58
+    LIT_FLOAT   shift, and go to state 59
+    LIT_CHAR    shift, and go to state 60
+    LIT_STRING  shift, and go to state 61
+    TRUE        shift, and go to state 62
+    FALSE       shift, and go to state 63
+    ID          shift, and go to state 64
+    '-'         shift, and go to state 65
+    '('         shift, and go to state 66
+
+    expression    go to state 166
+    literals      go to state 68
+    boolLiteral   go to state 69
+    functionCall  go to state 70
+
+
+State 154
+
+   38 conditional: ifCond elifCond . elseCond
+   41 elifCond: elifCond . ELIF '(' expression ')' '{' statementWrapper '}'
+
+    ELIF  shift, and go to state 167
+    ELSE  shift, and go to state 168
+
+    $default  reduce using rule 42 (elseCond)
+
+    elseCond  go to state 169
+
+
+State 155
+
+   28 statement: varAssign ';' .
+
+    $default  reduce using rule 28 (statement)
+
+
+State 156
+
+   27 statement: functionCall ';' .
+
+    $default  reduce using rule 27 (statement)
+
+
+State 157
+
+   20 functiondcl: typeFunction ID '(' paramWrapper ')' '{' statementWrapper '}' .
+
+    $default  reduce using rule 20 (functiondcl)
+
+
+State 158
+
+   54 arraydcl: typePrimitive '[' ']' ID '=' '{' arrayWrapper '}' . ';'
+
+    ';'  shift, and go to state 170
+
+
+State 159
+
+   58 array: array ',' . expression
+
+    NOT         shift, and go to state 57
+    LIT_INT     shift, and go to state 58
+    LIT_FLOAT   shift, and go to state 59
+    LIT_CHAR    shift, and go to state 60
+    LIT_STRING  shift, and go to state 61
+    TRUE        shift, and go to state 62
+    FALSE       shift, and go to state 63
+    ID          shift, and go to state 64
+    '-'         shift, and go to state 65
+    '('         shift, and go to state 66
+
+    expression    go to state 171
+    literals      go to state 68
+    boolLiteral   go to state 69
+    functionCall  go to state 70
+
+
+State 160
+
+   66 expression: expression . operators expression
+   95 paramsFunctionCall: paramsFunctionCall ',' expression .
+
+    AND         shift, and go to state 83
+    OR          shift, and go to state 84
+    EQUALS      shift, and go to state 85
+    NOT_EQ      shift, and go to state 86
+    LESS_EQ     shift, and go to state 87
+    BIGGER_EQ   shift, and go to state 88
+    '<'         shift, and go to state 89
+    '>'         shift, and go to state 90
+    GREATER_EQ  shift, and go to state 91
+    '+'         shift, and go to state 92
+    '-'         shift, and go to state 93
+    '*'         shift, and go to state 94
+    '/'         shift, and go to state 95
+    '%'         shift, and go to state 96
+    '^'         shift, and go to state 97
+
+    $default  reduce using rule 95 (paramsFunctionCall)
+
+    operators           go to state 99
+    comparisonOperator  go to state 100
+    boolJunction        go to state 101
+    numOperators        go to state 102
+
+
+State 161
+
+   39 ifCond: IF '(' expression . ')' '{' statementWrapper '}'
+   66 expression: expression . operators expression
+
+    AND         shift, and go to state 83
+    OR          shift, and go to state 84
+    EQUALS      shift, and go to state 85
+    NOT_EQ      shift, and go to state 86
+    LESS_EQ     shift, and go to state 87
+    BIGGER_EQ   shift, and go to state 88
+    '<'         shift, and go to state 89
+    '>'         shift, and go to state 90
+    GREATER_EQ  shift, and go to state 91
+    '+'         shift, and go to state 92
+    '-'         shift, and go to state 93
+    '*'         shift, and go to state 94
+    '/'         shift, and go to state 95
+    '%'         shift, and go to state 96
+    '^'         shift, and go to state 97
+    ')'         shift, and go to state 172
+
+    operators           go to state 99
+    comparisonOperator  go to state 100
+    boolJunction        go to state 101
+    numOperators        go to state 102
+
+
+State 162
+
+   37 whileLoop: WHILE '(' expression . ')' '{' statementWrapper '}'
+   66 expression: expression . operators expression
+
+    AND         shift, and go to state 83
+    OR          shift, and go to state 84
+    EQUALS      shift, and go to state 85
+    NOT_EQ      shift, and go to state 86
+    LESS_EQ     shift, and go to state 87
+    BIGGER_EQ   shift, and go to state 88
+    '<'         shift, and go to state 89
+    '>'         shift, and go to state 90
+    GREATER_EQ  shift, and go to state 91
+    '+'         shift, and go to state 92
+    '-'         shift, and go to state 93
+    '*'         shift, and go to state 94
+    '/'         shift, and go to state 95
+    '%'         shift, and go to state 96
+    '^'         shift, and go to state 97
+    ')'         shift, and go to state 173
+
+    operators           go to state 99
+    comparisonOperator  go to state 100
+    boolJunction        go to state 101
+    numOperators        go to state 102
+
+
+State 163
+
+   35 forLoop: FOR '(' forStatement . ')' '{' statementWrapper '}'
+
+    ')'  shift, and go to state 174
+
+
+State 164
+
+   36 forStatement: variabledcl . expression ';' varAssign
+
+    NOT         shift, and go to state 57
+    LIT_INT     shift, and go to state 58
+    LIT_FLOAT   shift, and go to state 59
+    LIT_CHAR    shift, and go to state 60
+    LIT_STRING  shift, and go to state 61
+    TRUE        shift, and go to state 62
+    FALSE       shift, and go to state 63
+    ID          shift, and go to state 64
+    '-'         shift, and go to state 65
+    '('         shift, and go to state 66
+
+    expression    go to state 175
+    literals      go to state 68
+    boolLiteral   go to state 69
+    functionCall  go to state 70
+
+
+State 165
+
+   31 statement: RETURN expression ';' .
+
+    $default  reduce using rule 31 (statement)
+
+
+State 166
+
+   44 varAssign: ID assignSymbols expression .
+   66 expression: expression . operators expression
+
+    AND         shift, and go to state 83
+    OR          shift, and go to state 84
+    EQUALS      shift, and go to state 85
+    NOT_EQ      shift, and go to state 86
+    LESS_EQ     shift, and go to state 87
+    BIGGER_EQ   shift, and go to state 88
+    '<'         shift, and go to state 89
+    '>'         shift, and go to state 90
+    GREATER_EQ  shift, and go to state 91
+    '+'         shift, and go to state 92
+    '-'         shift, and go to state 93
+    '*'         shift, and go to state 94
+    '/'         shift, and go to state 95
+    '%'         shift, and go to state 96
+    '^'         shift, and go to state 97
+
+    $default  reduce using rule 44 (varAssign)
+
+    operators           go to state 99
+    comparisonOperator  go to state 100
+    boolJunction        go to state 101
+    numOperators        go to state 102
+
+
+State 167
+
+   41 elifCond: elifCond ELIF . '(' expression ')' '{' statementWrapper '}'
+
+    '('  shift, and go to state 176
+
+
+State 168
+
+   43 elseCond: ELSE . '{' statementWrapper '}'
+
+    '{'  shift, and go to state 177
+
+
+State 169
+
+   38 conditional: ifCond elifCond elseCond .
+
+    $default  reduce using rule 38 (conditional)
+
+
+State 170
+
+   54 arraydcl: typePrimitive '[' ']' ID '=' '{' arrayWrapper '}' ';' .
+
+    $default  reduce using rule 54 (arraydcl)
+
+
+State 171
+
+   58 array: array ',' expression .
+   66 expression: expression . operators expression
+
+    AND         shift, and go to state 83
+    OR          shift, and go to state 84
+    EQUALS      shift, and go to state 85
+    NOT_EQ      shift, and go to state 86
+    LESS_EQ     shift, and go to state 87
+    BIGGER_EQ   shift, and go to state 88
+    '<'         shift, and go to state 89
+    '>'         shift, and go to state 90
+    GREATER_EQ  shift, and go to state 91
+    '+'         shift, and go to state 92
+    '-'         shift, and go to state 93
+    '*'         shift, and go to state 94
+    '/'         shift, and go to state 95
+    '%'         shift, and go to state 96
+    '^'         shift, and go to state 97
+
+    $default  reduce using rule 58 (array)
+
+    operators           go to state 99
+    comparisonOperator  go to state 100
+    boolJunction        go to state 101
+    numOperators        go to state 102
+
+
+State 172
+
+   39 ifCond: IF '(' expression ')' . '{' statementWrapper '}'
+
+    '{'  shift, and go to state 178
+
+
+State 173
+
+   37 whileLoop: WHILE '(' expression ')' . '{' statementWrapper '}'
+
+    '{'  shift, and go to state 179
+
+
+State 174
+
+   35 forLoop: FOR '(' forStatement ')' . '{' statementWrapper '}'
+
+    '{'  shift, and go to state 180
+
+
+State 175
+
+   36 forStatement: variabledcl expression . ';' varAssign
+   66 expression: expression . operators expression
+
+    AND         shift, and go to state 83
+    OR          shift, and go to state 84
+    EQUALS      shift, and go to state 85
+    NOT_EQ      shift, and go to state 86
+    LESS_EQ     shift, and go to state 87
+    BIGGER_EQ   shift, and go to state 88
+    '<'         shift, and go to state 89
+    '>'         shift, and go to state 90
+    GREATER_EQ  shift, and go to state 91
+    '+'         shift, and go to state 92
+    '-'         shift, and go to state 93
+    '*'         shift, and go to state 94
+    '/'         shift, and go to state 95
+    '%'         shift, and go to state 96
+    '^'         shift, and go to state 97
+    ';'         shift, and go to state 181
+
+    operators           go to state 99
+    comparisonOperator  go to state 100
+    boolJunction        go to state 101
+    numOperators        go to state 102
+
+
+State 176
+
+   41 elifCond: elifCond ELIF '(' . expression ')' '{' statementWrapper '}'
+
+    NOT         shift, and go to state 57
+    LIT_INT     shift, and go to state 58
+    LIT_FLOAT   shift, and go to state 59
+    LIT_CHAR    shift, and go to state 60
+    LIT_STRING  shift, and go to state 61
+    TRUE        shift, and go to state 62
+    FALSE       shift, and go to state 63
+    ID          shift, and go to state 64
+    '-'         shift, and go to state 65
+    '('         shift, and go to state 66
+
+    expression    go to state 182
+    literals      go to state 68
+    boolLiteral   go to state 69
+    functionCall  go to state 70
+
+
+State 177
+
+   43 elseCond: ELSE '{' . statementWrapper '}'
+
+    $default  reduce using rule 22 (statementWrapper)
+
+    statementWrapper  go to state 183
+
+
+State 178
+
+   39 ifCond: IF '(' expression ')' '{' . statementWrapper '}'
+
+    $default  reduce using rule 22 (statementWrapper)
+
+    statementWrapper  go to state 184
+
+
+State 179
+
+   37 whileLoop: WHILE '(' expression ')' '{' . statementWrapper '}'
+
+    $default  reduce using rule 22 (statementWrapper)
+
+    statementWrapper  go to state 185
+
+
+State 180
+
+   35 forLoop: FOR '(' forStatement ')' '{' . statementWrapper '}'
+
+    $default  reduce using rule 22 (statementWrapper)
+
+    statementWrapper  go to state 186
+
+
+State 181
+
+   36 forStatement: variabledcl expression ';' . varAssign
+
+    ID  shift, and go to state 187
+
+    varAssign  go to state 188
+
+
+State 182
+
+   41 elifCond: elifCond ELIF '(' expression . ')' '{' statementWrapper '}'
+   66 expression: expression . operators expression
+
+    AND         shift, and go to state 83
+    OR          shift, and go to state 84
+    EQUALS      shift, and go to state 85
+    NOT_EQ      shift, and go to state 86
+    LESS_EQ     shift, and go to state 87
+    BIGGER_EQ   shift, and go to state 88
+    '<'         shift, and go to state 89
+    '>'         shift, and go to state 90
+    GREATER_EQ  shift, and go to state 91
+    '+'         shift, and go to state 92
+    '-'         shift, and go to state 93
+    '*'         shift, and go to state 94
+    '/'         shift, and go to state 95
+    '%'         shift, and go to state 96
+    '^'         shift, and go to state 97
+    ')'         shift, and go to state 189
+
+    operators           go to state 99
+    comparisonOperator  go to state 100
+    boolJunction        go to state 101
+    numOperators        go to state 102
+
+
+State 183
+
+   23 statementWrapper: statementWrapper . statement
+   43 elseCond: ELSE '{' statementWrapper . '}'
+
+    IF        shift, and go to state 115
+    WHILE     shift, and go to state 116
+    DO        shift, and go to state 117
+    FOR       shift, and go to state 118
+    CONTINUE  shift, and go to state 119
+    BREAK     shift, and go to state 120
+    INT       shift, and go to state 13
+    FLOAT     shift, and go to state 14
+    CHAR      shift, and go to state 15
+    BOOL      shift, and go to state 16
+    STRING    shift, and go to state 27
+    RETURN    shift, and go to state 121
+    ID        shift, and go to state 122
+    '}'       shift, and go to state 190
+
+    statement      go to state 124
+    loop           go to state 125
+    forLoop        go to state 126
+    whileLoop      go to state 127
+    conditional    go to state 128
+    ifCond         go to state 129
+    varAssign      go to state 130
+    variabledcl    go to state 131
+    arraydcl       go to state 30
+    functionCall   go to state 132
+    typePrimitive  go to state 31
+    typeVariable   go to state 32
+
+
+State 184
+
+   23 statementWrapper: statementWrapper . statement
+   39 ifCond: IF '(' expression ')' '{' statementWrapper . '}'
+
+    IF        shift, and go to state 115
+    WHILE     shift, and go to state 116
+    DO        shift, and go to state 117
+    FOR       shift, and go to state 118
+    CONTINUE  shift, and go to state 119
+    BREAK     shift, and go to state 120
+    INT       shift, and go to state 13
+    FLOAT     shift, and go to state 14
+    CHAR      shift, and go to state 15
+    BOOL      shift, and go to state 16
+    STRING    shift, and go to state 27
+    RETURN    shift, and go to state 121
+    ID        shift, and go to state 122
+    '}'       shift, and go to state 191
+
+    statement      go to state 124
+    loop           go to state 125
+    forLoop        go to state 126
+    whileLoop      go to state 127
+    conditional    go to state 128
+    ifCond         go to state 129
+    varAssign      go to state 130
+    variabledcl    go to state 131
+    arraydcl       go to state 30
+    functionCall   go to state 132
+    typePrimitive  go to state 31
+    typeVariable   go to state 32
+
+
+State 185
+
+   23 statementWrapper: statementWrapper . statement
+   37 whileLoop: WHILE '(' expression ')' '{' statementWrapper . '}'
+
+    IF        shift, and go to state 115
+    WHILE     shift, and go to state 116
+    DO        shift, and go to state 117
+    FOR       shift, and go to state 118
+    CONTINUE  shift, and go to state 119
+    BREAK     shift, and go to state 120
+    INT       shift, and go to state 13
+    FLOAT     shift, and go to state 14
+    CHAR      shift, and go to state 15
+    BOOL      shift, and go to state 16
+    STRING    shift, and go to state 27
+    RETURN    shift, and go to state 121
+    ID        shift, and go to state 122
+    '}'       shift, and go to state 192
+
+    statement      go to state 124
+    loop           go to state 125
+    forLoop        go to state 126
+    whileLoop      go to state 127
+    conditional    go to state 128
+    ifCond         go to state 129
+    varAssign      go to state 130
+    variabledcl    go to state 131
+    arraydcl       go to state 30
+    functionCall   go to state 132
+    typePrimitive  go to state 31
+    typeVariable   go to state 32
+
+
+State 186
+
+   23 statementWrapper: statementWrapper . statement
+   35 forLoop: FOR '(' forStatement ')' '{' statementWrapper . '}'
+
+    IF        shift, and go to state 115
+    WHILE     shift, and go to state 116
+    DO        shift, and go to state 117
+    FOR       shift, and go to state 118
+    CONTINUE  shift, and go to state 119
+    BREAK     shift, and go to state 120
+    INT       shift, and go to state 13
+    FLOAT     shift, and go to state 14
+    CHAR      shift, and go to state 15
+    BOOL      shift, and go to state 16
+    STRING    shift, and go to state 27
+    RETURN    shift, and go to state 121
+    ID        shift, and go to state 122
+    '}'       shift, and go to state 193
+
+    statement      go to state 124
+    loop           go to state 125
+    forLoop        go to state 126
+    whileLoop      go to state 127
+    conditional    go to state 128
+    ifCond         go to state 129
+    varAssign      go to state 130
+    variabledcl    go to state 131
+    arraydcl       go to state 30
+    functionCall   go to state 132
+    typePrimitive  go to state 31
+    typeVariable   go to state 32
+
+
+State 187
+
+   44 varAssign: ID . assignSymbols expression
+
+    ASSIGN_ADD   shift, and go to state 148
+    ASSIGN_SUBS  shift, and go to state 149
+    ASSIGN_MULT  shift, and go to state 150
+    ASSIGN_DIV   shift, and go to state 151
+    '='          shift, and go to state 152
+
+    assignSymbols  go to state 153
+
+
+State 188
+
+   36 forStatement: variabledcl expression ';' varAssign .
+
+    $default  reduce using rule 36 (forStatement)
+
+
+State 189
+
+   41 elifCond: elifCond ELIF '(' expression ')' . '{' statementWrapper '}'
+
+    '{'  shift, and go to state 194
+
+
+State 190
+
+   43 elseCond: ELSE '{' statementWrapper '}' .
+
+    $default  reduce using rule 43 (elseCond)
+
+
+State 191
+
+   39 ifCond: IF '(' expression ')' '{' statementWrapper '}' .
+
+    $default  reduce using rule 39 (ifCond)
+
+
+State 192
+
+   37 whileLoop: WHILE '(' expression ')' '{' statementWrapper '}' .
+
+    $default  reduce using rule 37 (whileLoop)
+
+
+State 193
+
+   35 forLoop: FOR '(' forStatement ')' '{' statementWrapper '}' .
+
+    $default  reduce using rule 35 (forLoop)
+
+
+State 194
+
+   41 elifCond: elifCond ELIF '(' expression ')' '{' . statementWrapper '}'
+
+    $default  reduce using rule 22 (statementWrapper)
+
+    statementWrapper  go to state 195
+
+
+State 195
+
+   23 statementWrapper: statementWrapper . statement
+   41 elifCond: elifCond ELIF '(' expression ')' '{' statementWrapper . '}'
+
+    IF        shift, and go to state 115
+    WHILE     shift, and go to state 116
+    DO        shift, and go to state 117
+    FOR       shift, and go to state 118
+    CONTINUE  shift, and go to state 119
+    BREAK     shift, and go to state 120
+    INT       shift, and go to state 13
+    FLOAT     shift, and go to state 14
+    CHAR      shift, and go to state 15
+    BOOL      shift, and go to state 16
+    STRING    shift, and go to state 27
+    RETURN    shift, and go to state 121
+    ID        shift, and go to state 122
+    '}'       shift, and go to state 196
+
+    statement      go to state 124
+    loop           go to state 125
+    forLoop        go to state 126
+    whileLoop      go to state 127
+    conditional    go to state 128
+    ifCond         go to state 129
+    varAssign      go to state 130
+    variabledcl    go to state 131
+    arraydcl       go to state 30
+    functionCall   go to state 132
+    typePrimitive  go to state 31
+    typeVariable   go to state 32
+
+
+State 196
+
+   41 elifCond: elifCond ELIF '(' expression ')' '{' statementWrapper '}' .
+
+    $default  reduce using rule 41 (elifCond)
