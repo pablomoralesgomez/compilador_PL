@@ -115,7 +115,7 @@ main:           	INT MAIN '(' ')' '{' statementWrapper '}';
 statementWrapper: 	/* empty */
 |					statementWrapper statement;
 
-/* FIXME CONTINUE BREAK RETURN*/
+/* FIXME CONTINUE BREAK RETURN */
 statement: 			loop
 |					conditional
 |					variabledcl
@@ -123,7 +123,8 @@ statement: 			loop
 |					varAssign ';'
 |					BREAK ';'
 |					CONTINUE ';'
-|					RETURN returnExpression ';';
+|					RETURN expression ';'; 
+/* returnExpression */
 
 
 
@@ -135,19 +136,23 @@ loop: 				forLoop
 forLoop: 			FOR '(' forStatement ')' '{' statementWrapper '}';
 
 /* HACK variabledcl already has ';' */
-forStatement: 		variabledcl boolExpression ';'  varAssign;
+/* boolExpression */
+forStatement: 		variabledcl expression ';'  varAssign;
 
-whileLoop: 			WHILE '(' boolExpression ')' '{' statementWrapper '}';
+/* boolExpression */
+whileLoop: 			WHILE '(' expression ')' '{' statementWrapper '}';
 
 
 
 /********* REGLAS DECLARACIÓN DE CONDICIONALES*********/
 conditional: 		ifCond elifCond elseCond;
 
-ifCond: 			IF '(' boolExpression ')'  '{' statementWrapper '}';
+/* boolExpression */
+ifCond: 			IF '(' expression ')'  '{' statementWrapper '}';
 
+/* boolExpression */
 elifCond: 			/* empty */
-|					elifCond ELIF '(' boolExpression ')'  '{' statementWrapper '}';
+|					elifCond ELIF '(' expression ')'  '{' statementWrapper '}';
 
 elseCond: 			/* empty */
 |					ELSE '{' statementWrapper '}';
@@ -155,20 +160,18 @@ elseCond: 			/* empty */
 
 
 /********* REGLAS ASIGNACIONES *********/
-varAssign: 			ID '=' expression
-|					ID ASSIGN_ADD charNumStringExpression
-|					ID ASSIGN_SUBS charNumStringExpression
-|					ID ASSIGN_MULT charNumExpression
-|					ID ASSIGN_DIV charNumExpression;
+varAssign: 			ID assignSymbols expression;
+
+assignSymbols: '='
+|					ASSIGN_ADD
+|					ASSIGN_SUBS
+|					ASSIGN_MULT
+|					ASSIGN_DIV;
 
 
 
 /********* REGLAS DECLARACIÓN DE VARIABLES *********/
-variabledcl:		BOOL ID '=' boolExpression ';'
-|					INT ID '=' numExpression ';'
-|					FLOAT ID '=' numExpression ';'
-|					CHAR ID '=' charExpression ';'
-|					STRING ID '=' stringExpression ';'
+variabledcl:		typeVariable ID '=' expression ';'
 |					arraydcl;
 
 
@@ -176,71 +179,40 @@ variabledcl:		BOOL ID '=' boolExpression ';'
 /********* REGLAS DECLARACIÓN DE ARRAY *********/
 arraydcl:			typePrimitive '[' LIT_INT ']' ID ';'
 |					typePrimitive '[' ']' ID '=' ID ';'
-|					FLOAT '[' ']' ID '=' '{' numArrayWrapper '}' ';' 
-|					INT '[' ']' ID '=' '{' numArrayWrapper '}' ';' 
-|					CHAR '[' ']' ID '=' '{' charArrayWrapper '}' ';' 
-|					BOOL '[' ']' ID '=' '{' boolArrayWrapper '}' ';'; 
+|					typePrimitive '[' ']' ID '=' '{' arrayWrapper '}' ';'; 
 
-numArrayWrapper:	/* empty */
-|					numArray;
+arrayWrapper:	/* empty */
+|					array;
 
-numArray:			numExpression
-|					numArray ',' numExpression;
-
-charArrayWrapper: 	/* empty */
-|					charArray;
-
-charArray:			charExpression
-|					charArray ',' charExpression;
-
-boolArrayWrapper:	/* empty */
-|					boolArray;
-
-boolArray:			boolExpression
-|					boolArray ',' boolExpression;
+array:		expression
+|					array ',' expression;
 
 
 
-/********* REGLAS EXPRESIONES CON STRING *********/
-stringExpression:	LIT_STRING
+/********* REGLAS EXPRESIONES *********/
+expression:	functionCall
+|					ID '[' LIT_INT ']'
 |					ID
-|					stringExpression '+' stringExpression;
+|					literals
+|					NOT expression
+|					'-' expression
+|					'(' expression ')'
+|					expression operators expression;
 
+literals: LIT_INT
+|					LIT_FLOAT
+|					LIT_CHAR
+|					LIT_STRING
+|					boolLiteral;
 
-
-/********* REGLAS EXPRESIONES CON CHAR *********/
-charExpression:		LIT_CHAR
-|					valueEvaluation;
-
-
-
-/********* REGLAS EXPRESIONES NUMERICAS *********/
-numExpression:		LIT_FLOAT
-|					LIT_INT
-|					valueEvaluation
-|					numExpression '+' numExpression
-|					numExpression '-' numExpression
-|					numExpression '*' numExpression
-|					numExpression '/' numExpression
-|					numExpression '%' numExpression
-|					numExpression '^' numExpression
-|					'(' numExpression ')'
-|					'-' numExpression;
-
-
-
-/********* REGLAS EXPRESIONES BOOLEANAS *********/
-boolExpression:		boolLiteral 
-|					valueEvaluation
-|					NOT boolExpression
-|					boolExpression boolJunction boolExpression
-|					charNumExpression comparisonOperator charNumExpression
-|					'(' boolExpression ')';
+operators: comparisonOperator
+|					numOperators
+|					boolJunction;
 
 comparisonOperator:	EQUALS
-|                   NOT_EQ
-|                   LESS_EQ
-|                   BIGGER_EQ
+|					NOT_EQ
+|					LESS_EQ
+|					BIGGER_EQ
 |					GREATER_EQ
 |					'>'
 |					'<';
@@ -251,28 +223,12 @@ boolJunction:		OR
 boolLiteral:		TRUE
 |					FALSE;
 
-
-
-/********* REGLAS MISCELANEA PENDIENTE CLASIFICACION *********/
-valueEvaluation:	functionCall
-|					ID '[' LIT_INT ']'
-|					ID;
-
-charNumExpression:	charExpression
-|					numExpression;
-
-charNumStringExpression: charExpression
-|					numExpression
-|					stringExpression;
-
-expression:			numExpression
-|					charExpression
-|					boolExpression
-|					stringExpression;
-
-returnExpression: 	boolExpression
-|					charExpression
-|					numExpression;
+numOperators: '+'
+|					'-'
+|					'*'
+|					'/'
+|					'^'
+|					'%';
 
 
 
@@ -283,8 +239,6 @@ paramsFunctionCallWrapper: 	/* empty */
 |					paramsFunctionCall;
 
 paramsFunctionCall: paramsFunctionCall ',' expression
-|					paramsFunctionCall ',' ID
-|					ID
 |					expression;
 
 
