@@ -46,6 +46,22 @@
 %token ID	
 %token MAIN
 
+
+%start program
+
+%left ',' 
+%right '=' ASSIGN_ADD ASSIGN_DIV ASSIGN_MULT ASSIGN_SUBS
+%left OR
+%left AND
+%left EQUAL NOT_EQUAL
+%left '<' '>' LESS_EQUAL GREATER_EQUAL
+%left '+' '-'
+%left '*' '/' '%'
+%right NOT 
+%right '^'
+%left '[' '(' '.'
+
+
 %%	/********* REGLAS GRAMATICALES *********/
 
 program: 			header global functionArea;
@@ -257,10 +273,10 @@ returnExpression: 	boolExpression
 
 
 /********* REGLAS LLAMADA A UNA FUNCION*********/
-functionCall: 		ID '(' paramsFunctionCallWrapper')' 
+functionCall: 		ID '(' paramsFunctionCallWrapper')';
 
 paramsFunctionCallWrapper: 	/* empty */
-|					paramsFunctionCall ;
+|					paramsFunctionCall;
 
 paramsFunctionCall: paramsFunctionCall ',' expression
 |					paramsFunctionCall ',' ID
