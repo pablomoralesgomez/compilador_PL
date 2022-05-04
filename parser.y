@@ -48,7 +48,7 @@
 
 %%	/********* REGLAS GRAMATICALES *********/
 
-program: header global functionArea;
+program: 			header global functionArea;
 
 
 
@@ -61,13 +61,13 @@ headerWrapper: 		/* empty */
 
 headerdcl: 			typeFunction ID '(' paramWrapper ')' ';';
 
-paramWrapper: /* empty */
+paramWrapper: 		/* empty */
 |					paramWrapperRecursive;
 
-paramWrapperRecursive: 	param 
-|					   			paramWrapperRecursive ',' param;
+paramWrapperRecursive: param 
+|					paramWrapperRecursive ',' param;
 			
-param:		typeVariable ID
+param:				typeVariable ID
 |					typePrimitive '[' ']' ID;
 
 
@@ -90,60 +90,60 @@ functionWrapper: 	/* empty */
 /* ID can't be 'main' */
 functiondcl: 		typeFunction ID '(' paramWrapper ')' '{' statementWrapper '}';
 
-main:           INT MAIN '(' ')' '{' statementWrapper '}';
+main:           	INT MAIN '(' ')' '{' statementWrapper '}';
 
 
 
 /********* REGLAS DECLARACIÓN DE STATEMENT *********/
-statementWrapper: /* empty */
-|								statementWrapper statement;
+statementWrapper: 	/* empty */
+|					statementWrapper statement;
 
 /* FIXME CONTINUE BREAK RETURN*/
 statement: 			loop
-|								conditional
-|								variabledcl
-|								functionCall ';'
-|								varAssign ';'
-|								BREAK ';'
-|								CONTINUE ';'
-|								RETURN returnExpression ';';
+|					conditional
+|					variabledcl
+|					functionCall ';'
+|					varAssign ';'
+|					BREAK ';'
+|					CONTINUE ';'
+|					RETURN returnExpression ';';
 
 
 
 /********* REGLAS DECLARACIÓN DE BUCLES *********/
-loop: forLoop
-|			whileLoop
-|			DO whileLoop;
+loop: 				forLoop
+|					whileLoop
+|					DO whileLoop;
 
-forLoop: FOR '(' forStatement ')' '{' statementWrapper '}';
+forLoop: 			FOR '(' forStatement ')' '{' statementWrapper '}';
 
 /* HACK variabledcl already has ';' */
-forStatement: variabledcl boolExpression ';'  varAssign;
+forStatement: 		variabledcl boolExpression ';'  varAssign;
 
-whileLoop: WHILE '(' boolExpression ')' '{' statementWrapper '}';
+whileLoop: 			WHILE '(' boolExpression ')' '{' statementWrapper '}';
 
 
 
 /********* REGLAS DECLARACIÓN DE CONDICIONALES*********/
-conditional: ifCond elifCond elseCond
+conditional: 		ifCond elifCond elseCond;
 
+ifCond: 			IF '(' boolExpression ')'  '{' statementWrapper '}';
 
-ifCond: IF '(' boolExpression ')'  '{' statementWrapper '}';
+elifCond: 			/* empty */
+|					elifCond ELIF '(' boolExpression ')'  '{' statementWrapper '}';
 
-elifCond: 	/* empty */
-|						elif ELIF '(' boolExpression ')'  '{' statementWrapper '}';
-
-elseCond: 	/* empty */
-|						ELSE '{' statementWrapper '}';
+elseCond: 			/* empty */
+|					ELSE '{' statementWrapper '}';
 
 
 
 /********* REGLAS ASIGNACIONES *********/
-varAssign: ID '=' expression
-|						ID ASSIGN_ADD charNumStringExpression
-|						ID ASSIGN_SUBS charNumStringExpression
-|						ID ASSIGN_MULT charNumExpression
-|						ID ASSIGN_DIV charNumExpression;
+varAssign: 			ID '=' expression
+|					ID ASSIGN_ADD charNumStringExpression
+|					ID ASSIGN_SUBS charNumStringExpression
+|					ID ASSIGN_MULT charNumExpression
+|					ID ASSIGN_DIV charNumExpression;
+
 
 
 /********* REGLAS DECLARACIÓN DE VARIABLES *********/
@@ -198,7 +198,7 @@ charExpression:		LIT_CHAR
 
 
 /********* REGLAS EXPRESIONES NUMERICAS *********/
-numExpression:	LIT_FLOAT
+numExpression:		LIT_FLOAT
 |					LIT_INT
 |					valueEvaluation
 |					numExpression '+' numExpression
@@ -225,7 +225,7 @@ comparisonOperator:	EQUALS
 |                   LESS_EQ
 |                   BIGGER_EQ;
 
-boolJunction		OR
+boolJunction:		OR
 |					AND;
 
 boolLiteral:		TRUE
@@ -241,7 +241,7 @@ valueEvaluation:	functionCall
 charNumExpression:	charExpression
 |					numExpression;
 
-charNumStringExpression:	charExpression
+charNumStringExpression: charExpression
 |					numExpression
 |					stringExpression;
 
@@ -250,18 +250,19 @@ expression:			numExpression
 |					boolExpression
 |					stringExpression;
 
-returnExpression: boolExpression
+returnExpression: 	boolExpression
 |					charExpression
 |					numExpression;
 
 
+
 /********* REGLAS LLAMADA A UNA FUNCION*********/
-functionCall:		ID '(' paramsFunctionCallWrapper')' 
+functionCall: 		ID '(' paramsFunctionCallWrapper')' 
 
 paramsFunctionCallWrapper: 	/* empty */
-|							paramsFunctionCall ;
+|					paramsFunctionCall ;
 
-paramsFunctionCall: 				paramsFunctionCall ',' expression
+paramsFunctionCall: paramsFunctionCall ',' expression
 |					paramsFunctionCall ',' ID
 |					ID
 |					expression;
@@ -280,4 +281,14 @@ typeVariable: 		STRING
 typeFunction: 		VOID
 |					typePrimitive;
 		
-%%		
+%%	
+
+
+
+int main() {
+	yyparse();
+	return 1;
+}
+
+
+	

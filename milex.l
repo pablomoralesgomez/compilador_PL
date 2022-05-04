@@ -1,50 +1,7 @@
 %{
 
-#define IF 				258
-#define ELIF 			259
-#define ELSE 			260
-	
-#define WHILE 			261
-#define DO 				262
-#define FOR 			263
-#define CONTINUE 		264
-#define BREAK 			265
-
-#define AND 			266
-#define OR 				267
-#define NOT 			268
-
-#define EQUALS 			269
-#define NOT_EQ 			270
-#define LESS_EQ 		271
-#define BIGGER_EQ 		272
-
-#define VOID 			273
-#define INT 			274
-#define FLOAT 			275
-#define CHAR 			276
-#define BOOL 			277
-#define STRING 			278
-
-#define HEADER 			279
-#define GLOBAL 			280
-#define RETURN 			281
-
-#define ASSIGN_ADD 		282
-#define ASSIGN_SUBS 	283
-#define ASSIGN_MULT 	284
-#define ASSIGN_DIV 		285
-
-#define LIT_INT			286
-#define LIT_FLOAT		287
-#define LIT_CHAR		288
-#define LIT_STRING		289
-#define TRUE			290	
-#define FALSE			291
-
-#define ID				292
-
-#define MAIN			293
+#include <stdio.h> 
+#include "parser.tab.h"
 
 int numlin = 1;
 void error(char*);
@@ -116,20 +73,3 @@ int yywrap() {
 void error(char* mens) {
     printf("Error lexico en linea %i: %s\n",numlin,mens);
 }
-
-int main(int argc, char** argv) {
-    int s;
-    if(argc == 2) {
-		yyin=fopen(argv[1],"r"); 
-	}
-	/* else yyin=stdin */
-	
-	s = yylex();
-	while(s) {
-		printf("%d \n", s);
-		s = yylex();
-	}
-	
-    return 0;
-}
-
