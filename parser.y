@@ -53,13 +53,14 @@
 %right '=' ASSIGN_ADD ASSIGN_DIV ASSIGN_MULT ASSIGN_SUBS
 %left OR
 %left AND
-%left EQUAL NOT_EQUAL
-%left '<' '>' LESS_EQUAL GREATER_EQUAL
+%left EQUALS NOT_EQ
+%left '<' '>' LESS_EQ GREATER_EQ
 %left '+' '-'
 %left '*' '/' '%'
 %right NOT 
 %right '^'
-%left '[' '(' '.'
+%left '[' '(' 
+
 
 
 %%	/********* REGLAS GRAMATICALES *********/
@@ -239,7 +240,10 @@ boolExpression:		boolLiteral
 comparisonOperator:	EQUALS
 |                   NOT_EQ
 |                   LESS_EQ
-|                   BIGGER_EQ;
+|                   BIGGER_EQ
+|					GREATER_EQ
+|					'>'
+|					'<';
 
 boolJunction:		OR
 |					AND;
