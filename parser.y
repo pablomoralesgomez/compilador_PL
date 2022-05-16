@@ -1,4 +1,11 @@
+%{
 
+#include <stdio.h>
+
+extern int numlin;
+extern FILE *yyin;   
+
+%}
 /* SIMBOLOS TERMINALES */
 
 %token IF 				
@@ -54,7 +61,7 @@
 %left OR
 %left AND
 %left EQUALS NOT_EQ
-%left '<' '>' LESS_EQ GREATER_EQ
+%left '<' '>' LESS_EQ BIGGER_EQ
 %left '+' '-'
 %left '*' '/' '%'
 %right NOT 
@@ -213,7 +220,6 @@ comparisonOperator:	EQUALS
 |					NOT_EQ
 |					LESS_EQ
 |					BIGGER_EQ
-|					GREATER_EQ
 |					'>'
 |					'<';
 
@@ -257,12 +263,17 @@ typeFunction: 		VOID
 		
 %%	
 
+int main(int argc, char** argv) {
 
-
-int main() {
+    if(argc == 2) {
+		yyin = fopen(argv[1],"r"); 
+	}
+	
 	yyparse();
-	return 1;
+	
+    return 1;
 }
+
 
 
 	
