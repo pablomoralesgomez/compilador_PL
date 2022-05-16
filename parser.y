@@ -56,17 +56,15 @@ extern FILE *yyin;
 
 %start program
 
-%left ',' 
 %right '=' ASSIGN_ADD ASSIGN_DIV ASSIGN_MULT ASSIGN_SUBS
 %left OR
 %left AND
-%left EQUALS NOT_EQ
+%left  EQUALS NOT_EQ 
 %left '<' '>' LESS_EQ BIGGER_EQ
 %left '+' '-'
 %left '*' '/' '%'
-%right NOT 
 %right '^'
-%left '[' '(' 
+%right NOT 
 
 
 
@@ -204,7 +202,20 @@ expression:	functionCall
 |					NOT expression
 |					'-' expression
 |					'(' expression ')'
-|					expression operators expression;
+|					expression EQUALS expression
+|					expression NOT_EQ expression
+|					expression LESS_EQ expression
+|					expression BIGGER_EQ expression
+|					expression '>' expression
+|					expression '<' expression
+|					expression OR expression
+|					expression AND expression
+|					expression '+' expression
+|					expression '-' expression
+|					expression '*' expression
+|					expression '/' expression
+|					expression '^' expression
+|					expression '%' expression;
 
 literals: LIT_INT
 |					LIT_FLOAT
@@ -212,30 +223,8 @@ literals: LIT_INT
 |					LIT_STRING
 |					boolLiteral;
 
-operators: comparisonOperator
-|					numOperators
-|					boolJunction;
-
-comparisonOperator:	EQUALS
-|					NOT_EQ
-|					LESS_EQ
-|					BIGGER_EQ
-|					'>'
-|					'<';
-
-boolJunction:		OR
-|					AND;
-
 boolLiteral:		TRUE
 |					FALSE;
-
-numOperators: '+'
-|					'-'
-|					'*'
-|					'/'
-|					'^'
-|					'%';
-
 
 
 /********* REGLAS LLAMADA A UNA FUNCION*********/
