@@ -5,6 +5,8 @@
 extern int numlin;
 extern FILE *yyin;   
 
+void yyerror(char*); 
+
 %}
 /* SIMBOLOS TERMINALES */
 
@@ -202,7 +204,7 @@ expression:	functionCall
 |					NOT expression
 |					'-' expression
 |					'(' expression ')'
-|					expression EQUALS expression
+|					expression EQUALS expression 
 |					expression NOT_EQ expression
 |					expression LESS_EQ expression
 |					expression BIGGER_EQ expression
@@ -252,6 +254,10 @@ typeFunction: 		VOID
 		
 %%	
 
+void yyerror(char* mens) {
+  printf("Error en linea %i: %s ",numlin,mens);
+}
+
 int main(int argc, char** argv) {
 
     if(argc == 2) {
@@ -260,7 +266,7 @@ int main(int argc, char** argv) {
 	
 	yyparse();
 	
-    return 1;
+    return 0;
 }
 
 

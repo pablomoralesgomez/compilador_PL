@@ -4,8 +4,6 @@
 #include "parser.tab.h"
 
 int numlin = 1;
-void error(char*);
-
 %}
 
 
@@ -62,14 +60,10 @@ main						{return MAIN;}
 \n 							{numlin++;}
 [ |\t] 						{/* ignoramos espacios y tab */}
 
-.							{error("caracter no registrado");}
+.							{yyerror("caracter no registrado");}
 <<EOF>> 					{return 0;}
 %%
 
 int yywrap() { 
 	return 1; 
-}
-
-void error(char* mens) {
-    printf("Error lexico en linea %i: %s\n",numlin,mens);
 }
