@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 extern int numlin;
+extern int scope;
 extern FILE *yyin;   
 
 void yyerror(char*); 
@@ -78,12 +79,12 @@ program: 			header global functionArea;
 
 /********* REGLAS DEL HEADER *********/
 header: 			/* empty */
-|					HEADER '{' headerWrapper '}' {printf("Header\n");};					
+|					HEADER '{' headerWrapper '}'					{printf("%d\n", scope);};					
 
 headerWrapper: 		/* empty */
 |					headerWrapper headerdcl;
 
-headerdcl: 			typeFunction ID '(' paramWrapper ')' ';' 	{printf("Declaracion\n");};
+headerdcl: 			typeFunction ID '(' paramWrapper ')' ';' 		{printf("%d\n", scope);};
 
 paramWrapper: 		/* empty */
 |					paramWrapperRecursive;
@@ -98,10 +99,10 @@ param:				typeVariable ID
 
 /********* REGLAS DEL GLOBAL *********/
 global:				/* empty */
-|					GLOBAL '{' globalWrapper '}';
+|					GLOBAL '{' {scope = 0;} globalWrapper  '}' 		{printf("%d\n", scope);}; 
 
 globalWrapper:		/* empty */
-|					globalWrapper variabledcl;
+|					globalWrapper variabledcl {scope = 1;};
 
 
 
@@ -114,7 +115,7 @@ functionWrapper: 	/* empty */
 /* ID can't be 'main' */
 functiondcl: 		typeFunction ID '(' paramWrapper ')' '{' statementWrapper '}';
 
-main:           	INT MAIN '(' ')' '{' statementWrapper '}'			{printf("Esto es el main\n");};				
+main:           	INT MAIN '(' ')' '{' statementWrapper '}';				
 
 
 
@@ -178,7 +179,7 @@ assignSymbols: '='
 
 
 /********* REGLAS DECLARACIÓN DE VARIABLES *********/
-variabledcl:		typeVariable ID '=' expression ';'
+variabledcl:		typeVariable ID '=' expression ';' 				{printf("%d\n", scope);}
 |					arraydcl;
 
 

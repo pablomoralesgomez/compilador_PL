@@ -4,6 +4,7 @@
 #include "parser.tab.h"
 
 int numlin = 1;
+int scope = 0;
 %}
 
 
@@ -56,7 +57,13 @@ main						{return MAIN;}
 
 
 #.*$						{/* ignoramos los comentarios */}
-[[\]{}().+\-*/%=<>?:,^;] 	{return yytext[0];}
+
+[[\]{}().+\-*/%=<>?:,^;] 	{	int asciiCode = yytext[0];
+								if(asciiCode == 123) scope++;
+								if(asciiCode == 125) scope--;
+								return asciiCode;
+							}
+							
 \n 							{numlin++;}
 [ |\t|\r] 					{/* ignoramos espacios y tab */}
 

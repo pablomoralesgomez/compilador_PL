@@ -6,6 +6,22 @@
 #define true 1
 #define false 0
 
+void deleteScope() {
+	
+	struct nodo *puntero = primero;
+	
+	if(puntero != NULL) {
+		int scopeActual = puntero->scope;
+		
+		while(puntero != NULL || puntero->scope >= scopeActual) {
+			removeTop();
+			puntero = primero;
+		}
+		
+	}
+}
+
+
 int search(char* id, enum category categoria) {
 	
 	struct nodo *puntero = primero;
@@ -23,7 +39,7 @@ int search(char* id, enum category categoria) {
 }
 
 
-int add(char* id, enum type tipo, enum category categoria) {
+int add(char* id, enum type tipo, enum category categoria, int scope) {
 	
 	if(search(id, categoria)) return false;
 	
@@ -32,6 +48,7 @@ int add(char* id, enum type tipo, enum category categoria) {
 	nuevo_simbolo->tipo = tipo;
 	nuevo_simbolo->categoria = categoria;
 	nuevo_simbolo->sig = primero;
+	nuevo_simbolo->scope = scope;
 	
     primero = nuevo_simbolo;
 	
@@ -42,13 +59,11 @@ int add(char* id, enum type tipo, enum category categoria) {
 
 void removeTop() {
 	
-	if(primero != NULL) {
-		struct nodo *sig = primero->sig;
-		
-		free(primero);
-		
-		primero = sig;
-	}
+	struct nodo *sig = primero->sig;
+	
+	free(primero);
+	
+	primero = sig;
 }
 
 
@@ -67,12 +82,12 @@ void show() {
 }
 
 int main() {
-	add("x", entero, local);
-	add("x", coma_flotante, funcion);
-	add("x", coma_flotante, global);
+	add("x", entero, local, 0);
+	add("x", coma_flotante, funcion, 0);
+	add("x", coma_flotante, global, 0);
 	show();
 	
-	add("x", coma_flotante, global);
+	add("x", coma_flotante, global, 1);
 	show();
 	
 	removeTop();
