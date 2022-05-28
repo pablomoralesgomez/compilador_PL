@@ -6,29 +6,31 @@
 #define true 1
 #define false 0
 
-int search(char* id) {
+int search(char* id, enum category categoria) {
 	
 	struct nodo *puntero = primero;
 	
 	while (puntero != NULL) {
 		
-		if(strcmp(id, puntero->id) == 0) {
-			printf("Ya hay uno que se llama asi.\n");					// printf que habra que quitar
+		if(puntero->categoria == categoria && strcmp(id, puntero->id) == 0) {
+			printf("Ya hay uno con mismo id y categ.\n");					// printf que habra que quitar
 			return true;
 		}
 		
-		puntero = primero->sig;
+		puntero = puntero->sig;
 	}
 	return false;
 }
 
 
-int add(char* id) {
+int add(char* id, enum type tipo, enum category categoria) {
 	
-	if(search(id)) return false;
+	if(search(id, categoria)) return false;
 	
 	struct nodo *nuevo_simbolo = malloc(sizeof(struct nodo));
 	nuevo_simbolo->id = id;
+	nuevo_simbolo->tipo = tipo;
+	nuevo_simbolo->categoria = categoria;
 	nuevo_simbolo->sig = primero;
 	
     primero = nuevo_simbolo;
@@ -57,7 +59,7 @@ void show() {
 	struct nodo *puntero = primero;
 	
 	while (puntero != NULL) {
-		printf("id = %s\n", puntero->id);
+		printf("type = %d | categ = %d | id = %s\n", puntero->tipo, puntero->categoria, puntero->id);
 		puntero = puntero->sig;
 	}
 	
@@ -65,5 +67,18 @@ void show() {
 }
 
 int main() {
-
+	add("x", entero, local);
+	add("x", coma_flotante, funcion);
+	add("x", coma_flotante, global);
+	show();
+	
+	add("x", coma_flotante, global);
+	show();
+	
+	removeTop();
+	show();
+	
+	add("x", coma_flotante, funcion);
+	add("x", coma_flotante, global);
+	show();
 }
