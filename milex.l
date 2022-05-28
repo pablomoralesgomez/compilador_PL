@@ -44,7 +44,7 @@ return						{return RETURN;}
 \*=							{return ASSIGN_MULT;}
 \/=							{return ASSIGN_DIV;}
 
--?[0-9]+					{return LIT_INT;}
+-?[0-9]+					{yylval.int4 = atoi(yytext) ;return LIT_INT;}
 -?[0-9]+\.[0-9]*			{return LIT_FLOAT;}
 \'.?\'						{return LIT_CHAR;}
 \"[^"']*\"					{return LIT_STRING;}
@@ -53,7 +53,7 @@ false						{return FALSE;}
 
 main						{return MAIN;}
 
-[A-Za-z_][A-Za-z0-9_-]*		{return ID;}
+[A-Za-z_][A-Za-z0-9_-]*		{yylval.str = strdup(yytext);return (ID);}
 
 
 #.*$						{/* ignoramos los comentarios */}

@@ -1,60 +1,67 @@
 %{
 
 #include <stdio.h>
+#include "tab.h"
 
 extern int numlin;
 extern int scope;
-extern FILE *yyin;   
+extern FILE *yyin;
 
-void yyerror(char*); 
+void yyerror(char*);
 
 %}
 /* SIMBOLOS TERMINALES */
 
-%token IF 				
-%token ELIF 		
-%token ELSE 		
+%token IF
+%token ELIF
+%token ELSE
 
-%token WHILE 			
-%token DO 				
-%token FOR 			
-%token CONTINUE 	
-%token BREAK 		
+%token WHILE
+%token DO
+%token FOR
+%token CONTINUE
+%token BREAK
 
-%token AND 		
-%token OR 			
-%token NOT 		
+%token AND
+%token OR
+%token NOT
 
-%token EQUALS 		
-%token NOT_EQ 		
-%token LESS_EQ 	
-%token BIGGER_EQ 	
+%token EQUALS
+%token NOT_EQ
+%token LESS_EQ
+%token BIGGER_EQ
 
-%token VOID 		
-%token INT 		
-%token FLOAT 		
-%token CHAR 		
-%token BOOL 		
-%token STRING 		
+%token VOID
+%token INT
+%token FLOAT
+%token CHAR
+%token BOOL
+%token STRING
 
-%token HEADER 		
-%token GLOBAL 		
-%token RETURN 		
+%token HEADER
+%token GLOBAL
+%token RETURN
 
-%token ASSIGN_ADD 	
-%token ASSIGN_SUBS 
-%token ASSIGN_MULT 
-%token ASSIGN_DIV 	
+%token ASSIGN_ADD
+%token ASSIGN_SUBS
+%token ASSIGN_MULT
+%token ASSIGN_DIV
 
-%token LIT_INT		
-%token LIT_FLOAT	
-%token LIT_CHAR	
-%token LIT_STRING	
-%token TRUE		
-%token FALSE		
+%token <int4>LIT_INT
+%token LIT_FLOAT
+%token LIT_CHAR
+%token LIT_STRING
+%token TRUE
+%token FALSE
 
-%token ID	
+
+%union{
+  char *str;
+  long int4;
+}
+%token <str>ID
 %token MAIN
+
 
 
 %start program
@@ -62,12 +69,12 @@ void yyerror(char*);
 %right '=' ASSIGN_ADD ASSIGN_DIV ASSIGN_MULT ASSIGN_SUBS
 %left OR
 %left AND
-%left  EQUALS NOT_EQ 
+%left  EQUALS NOT_EQ
 %left '<' '>' LESS_EQ BIGGER_EQ
 %left '+' '-'
 %left '*' '/' '%'
 %right '^'
-%right NOT 
+%right NOT
 
 
 
@@ -79,7 +86,7 @@ program: 			header global functionArea;
 
 /********* REGLAS DEL HEADER *********/
 header: 			/* empty */
-|					HEADER '{' headerWrapper '}'					{printf("%d\n", scope);};					
+|					HEADER '{' headerWrapper '}'					{printf("%d\n", scope);};
 
 headerWrapper: 		/* empty */
 |					headerWrapper headerdcl;
@@ -89,9 +96,9 @@ headerdcl: 			typeFunction ID '(' paramWrapper ')' ';' 		{printf("%d\n", scope);
 paramWrapper: 		/* empty */
 |					paramWrapperRecursive;
 
-paramWrapperRecursive: param 
+paramWrapperRecursive: param
 |					paramWrapperRecursive ',' param;
-			
+
 param:				typeVariable ID
 |					typePrimitive '[' ']' ID;
 
@@ -99,7 +106,7 @@ param:				typeVariable ID
 
 /********* REGLAS DEL GLOBAL *********/
 global:				/* empty */
-|					GLOBAL '{' {scope = 0;} globalWrapper  '}' 		{printf("%d\n", scope);}; 
+|					GLOBAL '{' {scope = 0;} globalWrapper  '}' 		{printf("%d\n", scope);};
 
 globalWrapper:		/* empty */
 |					globalWrapper variabledcl {scope = 1;};
@@ -115,7 +122,7 @@ functionWrapper: 	/* empty */
 /* ID can't be 'main' */
 functiondcl: 		typeFunction ID '(' paramWrapper ')' '{' statementWrapper '}';
 
-main:           	INT MAIN '(' ')' '{' statementWrapper '}';				
+main:           	INT MAIN '(' ')' '{' statementWrapper '}';
 
 
 
@@ -131,7 +138,7 @@ statement: 			loop
 |					varAssign ';'
 |					BREAK ';'
 |					CONTINUE ';'
-|					RETURN expression ';'; 
+|					RETURN expression ';';
 /* returnExpression */
 
 
@@ -179,7 +186,7 @@ assignSymbols: '='
 
 
 /********* REGLAS DECLARACIÓN DE VARIABLES *********/
-variabledcl:		typeVariable ID '=' expression ';' 				{printf("%d\n", scope);}
+variabledcl:		typeVariable ID '=' expression ';' {printf("variable nombre %s\n",$2);};
 |					arraydcl;
 
 
@@ -187,7 +194,7 @@ variabledcl:		typeVariable ID '=' expression ';' 				{printf("%d\n", scope);}
 /********* REGLAS DECLARACIÓN DE ARRAY *********/
 arraydcl:			typePrimitive '[' LIT_INT ']' ID ';'
 |					typePrimitive '[' ']' ID '=' ID ';'
-|					typePrimitive '[' ']' ID '=' '{' arrayWrapper '}' ';'; 
+|					typePrimitive '[' ']' ID '=' '{' arrayWrapper '}' ';';
 
 arrayWrapper:	/* empty */
 |					array;
@@ -205,7 +212,7 @@ expression:	functionCall
 |					NOT expression
 |					'-' expression
 |					'(' expression ')'
-|					expression EQUALS expression 
+|					expression EQUALS expression
 |					expression NOT_EQ expression
 |					expression LESS_EQ expression
 |					expression BIGGER_EQ expression
@@ -220,7 +227,7 @@ expression:	functionCall
 |					expression '^' expression
 |					expression '%' expression;
 
-literals: LIT_INT
+literals: LIT_INT {printf("digito %ld\n",$1);};
 |					LIT_FLOAT
 |					LIT_CHAR
 |					LIT_STRING
@@ -252,8 +259,8 @@ typeVariable: 		STRING
 
 typeFunction: 		VOID
 |					typePrimitive;
-		
-%%	
+
+%%
 
 void yyerror(char* mens) {
   printf("Error en linea %i: %s \n",numlin,mens);
@@ -262,11 +269,11 @@ void yyerror(char* mens) {
 int main(int argc, char** argv) {
 
     if(argc == 2) {
-		yyin = fopen(argv[1],"r"); 
+		yyin = fopen(argv[1],"r");
 	}
-	
+
 	yyparse();
-	
+
     return 0;
 }
 
