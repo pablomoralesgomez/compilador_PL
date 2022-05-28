@@ -1,0 +1,17 @@
+	#                     Hey
+
+global{
+	int x;
+	float df = 0.5;
+}	
+
+header { int sum();
+
+	float mul(int x, char c);
+boolean cd(int g, boolean gh);
+}	
+	
+int main() {
+ }
+ 
+ 
