@@ -58,7 +58,7 @@ main						{return MAIN;}
 #.*$						{/* ignoramos los comentarios */}
 [[\]{}().+\-*/%=<>?:,^;] 	{return yytext[0];}
 \n 							{numlin++;}
-[ |\t] 						{/* ignoramos espacios y tab */}
+[ |\t|\r] 					{/* ignoramos espacios y tab */}
 
 .							{yyerror("caracter no registrado");}
 <<EOF>> 					{return 0;}

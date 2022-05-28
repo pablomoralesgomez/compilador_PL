@@ -78,12 +78,12 @@ program: 			header global functionArea;
 
 /********* REGLAS DEL HEADER *********/
 header: 			/* empty */
-|					HEADER '{' headerWrapper '}';
+|					HEADER '{' headerWrapper '}' {printf("Header\n");};					
 
 headerWrapper: 		/* empty */
 |					headerWrapper headerdcl;
 
-headerdcl: 			typeFunction ID '(' paramWrapper ')' ';';
+headerdcl: 			typeFunction ID '(' paramWrapper ')' ';' 	{printf("Declaracion\n");};
 
 paramWrapper: 		/* empty */
 |					paramWrapperRecursive;
@@ -114,7 +114,7 @@ functionWrapper: 	/* empty */
 /* ID can't be 'main' */
 functiondcl: 		typeFunction ID '(' paramWrapper ')' '{' statementWrapper '}';
 
-main:           	INT MAIN '(' ')' '{' statementWrapper '}';
+main:           	INT MAIN '(' ')' '{' statementWrapper '}'			{printf("Esto es el main\n");};				
 
 
 
@@ -255,7 +255,7 @@ typeFunction: 		VOID
 %%	
 
 void yyerror(char* mens) {
-  printf("Error en linea %i: %s ",numlin,mens);
+  printf("Error en linea %i: %s \n",numlin,mens);
 }
 
 int main(int argc, char** argv) {
