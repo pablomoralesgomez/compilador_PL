@@ -1,7 +1,7 @@
 	#                     Hey
 
 global{
-	int x;
+	int x = 4;
 	float df = 0.5;
 }	
 
