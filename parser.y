@@ -48,9 +48,9 @@ void yyerror(char*);
 %token ASSIGN_DIV
 
 %token <int4>LIT_INT
-%token LIT_FLOAT
-%token LIT_CHAR
-%token LIT_STRING
+%token <fl>LIT_FLOAT
+%token <ch>LIT_CHAR
+%token <str>LIT_STRING
 %token TRUE
 %token FALSE
 
@@ -58,6 +58,8 @@ void yyerror(char*);
 %union{
   char *str;
   long int4;
+  float fl;
+  char ch;
 }
 %token <str>ID
 %token MAIN
@@ -227,10 +229,10 @@ expression:	functionCall
 |					expression '^' expression
 |					expression '%' expression;
 
-literals: LIT_INT {printf("digito %ld\n",$1);};
-|					LIT_FLOAT
-|					LIT_CHAR
-|					LIT_STRING
+literals: LIT_INT {printf("digito %ld\n",$1);}
+|					LIT_FLOAT {printf("float %f\n",$1);}
+|					LIT_CHAR {printf("char %c\n",$1);}
+|					LIT_STRING {printf("string %s\n",$1);}
 |					boolLiteral;
 
 boolLiteral:		TRUE

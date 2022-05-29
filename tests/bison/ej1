@@ -9,6 +9,9 @@ header{
 global{
 	int x = 4;
 	float df = 0.5;
+	char c = ' ';
+	String a = "hola";
+	String b = "halo";
 }
 	
 int main() {
