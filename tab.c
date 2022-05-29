@@ -6,58 +6,19 @@
 #define true 1
 #define false 0
 
-void deleteScope() {
+struct nodo *primero = NULL;
+
+void deleteScope(int sc) {
 	
 	struct nodo *puntero = primero;
 	
 	if(puntero != NULL) {
-		int scopeActual = puntero->scope;
-		
-		while(puntero != NULL && puntero->scope == scopeActual) {
+		while(puntero != NULL && sc < puntero->scope) {
 			removeTop();
 			puntero = primero;
 		}
 		
 	}
-}
-
-
-int search(char* id, enum category categoria) {
-	
-	struct nodo *puntero = primero;
-	
-	while (puntero != NULL) {
-		
-		if(puntero->categoria == categoria && strcmp(id, puntero->id) == 0) {
-			printf("Ya hay uno con mismo id y categ.\n");					// printf que habra que quitar
-			return true;
-		}
-		
-		puntero = puntero->sig;
-	}
-	return false;
-}
-
-
-int add(char* id, enum type tipo, enum category categoria, int scope) {
-	
-	if(search(id, categoria)) return false;
-	
-	struct nodo *nuevo_simbolo = malloc(sizeof(struct nodo));
-	nuevo_simbolo->id = id;
-	nuevo_simbolo->tipo = tipo;
-	nuevo_simbolo->categoria = categoria;
-	nuevo_simbolo->scope = scope;
-	
-	if(primero != NULL && categoria == param) {
-		nuevo_simbolo->param = primero->param;
-		primero->param = nuevo_simbolo;
-	} else {
-		nuevo_simbolo->sig = primero;
-		primero = nuevo_simbolo;
-	}	
-	
-	return true;
 }
 
 
@@ -71,6 +32,45 @@ void removeTop() {
 }
 
 
+struct nodo * search(char* id, enum category categoria) {
+	
+	struct nodo *puntero = primero;
+	
+	while (puntero != NULL) {
+		
+		if(puntero->categoria == categoria && strcmp(id, puntero->id) == 0) {
+			return puntero;
+		}
+		
+		puntero = puntero->sig;
+	}
+	return NULL;
+}
+
+
+int add(char* id, enum type tipo, enum category categoria, int scope) {
+	
+	if(search(id, categoria) != NULL) return false;
+	
+	struct nodo *nuevo_simbolo = malloc(sizeof(struct nodo));
+	nuevo_simbolo->id = id;
+	nuevo_simbolo->tipo = tipo;
+	nuevo_simbolo->categoria = categoria;
+	nuevo_simbolo->scope = scope;
+	
+	if(primero != NULL && categoria == param) {
+		
+		nuevo_simbolo->param = primero->param;
+		primero->param = nuevo_simbolo;
+	} else {
+		nuevo_simbolo->sig = primero;
+		primero = nuevo_simbolo;
+	}	
+	
+	return true;
+}
+
+
 void show() {
 	
 	printf("-- Inicio Tabla Simbolos --\n");
@@ -79,29 +79,20 @@ void show() {
 	
 	while (puntero != NULL) {
 		printf("type = %d | categ = %d | scope = %d | id = %s\n", puntero->tipo, puntero->categoria, puntero->scope, puntero->id);
+		
+		if(puntero->categoria == funcion) {
+			struct nodo *punteroParam = puntero->param;
+			printf("-- Inicio Parametros --\n");
+			
+			while (punteroParam != NULL) {
+				printf("type = %d | categ = %d | scope = %d | id = %s\n", punteroParam->tipo, punteroParam->categoria, punteroParam->scope, punteroParam->id);
+				punteroParam = punteroParam->param;
+			}
+			printf("-- Fin Parametros --\n\n");
+		}
+		
 		puntero = puntero->sig;
 	}
 	
 	printf("-- Fin Tabla Simbolos --\n\n");
-}
-
-int main() {
-	add("sdx", entero, local, 0);
-	add("xf", coma_flotante, funcion, 0);
-	add("sx", coma_flotante, global, 0);
-	add("xd", coma_flotante, global, 1);
-	add("xe", coma_flotante, funcion, 1);
-	add("xq", coma_flotante, global, 2);
-	show();
-	deleteScope();
-	show();
-	
-		deleteScope();
-	show();
-		deleteScope();
-	show();
-		deleteScope();
-	show();
-		deleteScope();
-	show();
 }

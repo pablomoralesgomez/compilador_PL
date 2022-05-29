@@ -1,6 +1,6 @@
 
 enum category {funcion, local, global, param};
-enum type {caracter, entero, coma_flotante, String, boolean};
+enum type {caracter, entero, comaFlotante, ristra, boolean, vacio};
 
 struct nodo {
     char *id;   
@@ -11,10 +11,8 @@ struct nodo {
     struct nodo *sig;
 };
 
-struct nodo *primero = NULL;
-
-int search(char* id, enum category categoria);
+struct nodo * search(char* id, enum category categoria);
 int add(char* id, enum type tipo, enum category categoria, int scope);
-void deleteScope();
+void deleteScope(int sc);
 void removeTop();
 void show();

@@ -47,6 +47,7 @@ return						{return RETURN;}
 -?[0-9]+					{yylval.int4 = atoi(yytext) ;return LIT_INT;}
 -?[0-9]+\.[0-9]*			{yylval.fl = atof(yytext);return LIT_FLOAT;}
 \'.\'						{yylval.ch = yytext[1];return LIT_CHAR;}
+
 \"[^"']*\"					{yylval.str = strdup(yytext);return LIT_STRING;}
 true						{return TRUE;}
 false						{return FALSE;}

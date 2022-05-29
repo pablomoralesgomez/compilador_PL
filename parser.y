@@ -51,9 +51,9 @@ void yyerror(char*);
 %token <fl>LIT_FLOAT
 %token <ch>LIT_CHAR
 %token <str>LIT_STRING
+
 %token TRUE
 %token FALSE
-
 
 %union{
   char *str;
@@ -61,10 +61,11 @@ void yyerror(char*);
   float fl;
   char ch;
 }
+
 %token <str>ID
 %token MAIN
 
-
+%type <int4>typeFunction typePrimitive typeVariable
 
 %start program
 
@@ -82,18 +83,18 @@ void yyerror(char*);
 
 %%	/********* REGLAS GRAMATICALES *********/
 
-program: 			header global functionArea;
+program: 			header global functionArea 						{show();};
 
 
 
 /********* REGLAS DEL HEADER *********/
 header: 			/* empty */
-|					HEADER '{' headerWrapper '}'					{printf("%d\n", scope);};
+|					HEADER '{' headerWrapper '}';
 
 headerWrapper: 		/* empty */
 |					headerWrapper headerdcl;
 
-headerdcl: 			typeFunction ID '(' paramWrapper ')' ';' 		{printf("%d\n", scope);};
+headerdcl: 			typeFunction ID {add($2, $1, funcion, 0);} '(' paramWrapper ')' ';';
 
 paramWrapper: 		/* empty */
 |					paramWrapperRecursive;
@@ -101,17 +102,17 @@ paramWrapper: 		/* empty */
 paramWrapperRecursive: param
 |					paramWrapperRecursive ',' param;
 
-param:				typeVariable ID
-|					typePrimitive '[' ']' ID;
+param:				typeVariable ID									{add($2, $1, param, 0);}
+|					typePrimitive '[' ']' ID;						/* TODO: AÑADIR ARRAYS A LA PILA */
 
 
 
 /********* REGLAS DEL GLOBAL *********/
 global:				/* empty */
-|					GLOBAL '{' {scope = 0;} globalWrapper  '}' 		{printf("%d\n", scope);};
+|					GLOBAL '{' {scope = 0;} globalWrapper  '}' 		{scope = 0;};
 
 globalWrapper:		/* empty */
-|					globalWrapper variabledcl {scope = 1;};
+|					globalWrapper variabledcl ;
 
 
 
@@ -122,7 +123,27 @@ functionWrapper: 	/* empty */
 |					functionWrapper functiondcl;
 
 /* ID can't be 'main' */
-functiondcl: 		typeFunction ID '(' paramWrapper ')' '{' statementWrapper '}';
+functiondcl: 		typeFunction ID '(' paramWrapper ')' '{'		{
+																		struct nodo *puntero = search($2, funcion);
+																		if(puntero == NULL) {
+																			yyerror("La funcion no esta declarada en el header");
+																		} else {
+																			
+																			if($1 != puntero->tipo) {
+																				yyerror("El tipo de la funcion no corresponde con la del header");
+																			} else {
+																				puntero = puntero->param;
+																				while(puntero != NULL) {
+																					add(puntero->id, puntero->tipo, local, scope);
+																					
+																					puntero = puntero->param;
+																				}
+																			}
+																			
+																		}
+																	}	
+															
+										statementWrapper '}'		{deleteScope(scope);};
 
 main:           	INT MAIN '(' ')' '{' statementWrapper '}';
 
@@ -188,10 +209,17 @@ assignSymbols: '='
 
 
 /********* REGLAS DECLARACIÓN DE VARIABLES *********/
-variabledcl:		typeVariable ID '=' expression ';' {printf("variable nombre %s\n",$2);};
+variabledcl:		typeVariable ID '=' expression ';' 						{
+																				if(scope == 0) {
+																					add($2, $1, global, scope);
+																				} else {
+																					add($2, $1, local, scope);
+																				}
+																			};
 |					arraydcl;
 
 
+/* TODO: Pensar que hacer con los arrays en pila */
 
 /********* REGLAS DECLARACIÓN DE ARRAY *********/
 arraydcl:			typePrimitive '[' LIT_INT ']' ID ';'
@@ -229,15 +257,16 @@ expression:	functionCall
 |					expression '^' expression
 |					expression '%' expression;
 
-literals: LIT_INT {printf("digito %ld\n",$1);}
-|					LIT_FLOAT {printf("float %f\n",$1);}
-|					LIT_CHAR {printf("char %c\n",$1);}
-|					LIT_STRING {printf("string %s\n",$1);}
+literals: 			LIT_INT 						{printf("digito %ld\n",$1);}
+|					LIT_FLOAT 						{printf("float %f\n",$1);}
+|					LIT_CHAR 						{printf("char %c\n",$1);}
+|					LIT_STRING 						{printf("string %s\n",$1);}
 |					boolLiteral;
 
 boolLiteral:		TRUE
 |					FALSE;
 
+/* TODO: Hacer comprobaciones a la hora de llamar a la funcion: id correcta, num param, etc */
 
 /********* REGLAS LLAMADA A UNA FUNCION*********/
 functionCall: 		ID '(' paramsFunctionCallWrapper')';
@@ -251,16 +280,16 @@ paramsFunctionCall: paramsFunctionCall ',' expression
 
 
 /********* REGLAS TIPOS *********/
-typePrimitive:		BOOL
-|					CHAR
-|					INT
-|					FLOAT;
+typePrimitive:		BOOL 			{$$ = boolean;}
+|					CHAR			{$$ = caracter;}
+|					INT				{$$ = entero;}
+|					FLOAT			{$$ = comaFlotante;};
 
-typeVariable: 		STRING
-|					typePrimitive;
+typeVariable: 		STRING			{$$ = ristra;}
+|					typePrimitive	{$$ = $1;};	
 
-typeFunction: 		VOID
-|					typePrimitive;
+typeFunction: 		VOID			{$$ = vacio;}
+|					typePrimitive	{$$ = $1;};
 
 %%
 
