@@ -7,6 +7,9 @@ extern int numlin;
 extern int scope;
 extern FILE *yyin;
 
+#define true 1
+#define false 0
+
 void yyerror(char*);
 
 %}
@@ -94,7 +97,7 @@ header: 			/* empty */
 headerWrapper: 		/* empty */
 |					headerWrapper headerdcl;
 
-headerdcl: 			typeFunction ID {add($2, $1, funcion, 0);} '(' paramWrapper ')' ';';
+headerdcl: 			typeFunction ID {add($2, $1, funcion, 0, false);} '(' paramWrapper ')' ';';
 
 paramWrapper: 		/* empty */
 |					paramWrapperRecursive;
@@ -102,7 +105,7 @@ paramWrapper: 		/* empty */
 paramWrapperRecursive: param
 |					paramWrapperRecursive ',' param;
 
-param:				typeVariable ID									{add($2, $1, param, 0);}
+param:				typeVariable ID									{add($2, $1, param, 0, false);}
 |					typePrimitive '[' ']' ID;						/* TODO: AÑADIR ARRAYS A LA PILA */
 
 
@@ -123,23 +126,22 @@ functionWrapper: 	/* empty */
 |					functionWrapper functiondcl;
 
 /* ID can't be 'main' */
+/* already checked? */
 functiondcl: 		typeFunction ID '(' paramWrapper ')' '{'		{
 																		struct nodo *puntero = search($2, funcion);
 																		if(puntero == NULL) {
 																			yyerror("La funcion no esta declarada en el header");
 																		} else {
-																			
 																			if($1 != puntero->tipo) {
 																				yyerror("El tipo de la funcion no corresponde con la del header");
 																			} else {
 																				puntero = puntero->param;
 																				while(puntero != NULL) {
-																					add(puntero->id, puntero->tipo, local, scope);
+																					add(puntero->id, puntero->tipo, local, scope, puntero->array);
 																					
 																					puntero = puntero->param;
 																				}
 																			}
-																			
 																		}
 																	}	
 															
@@ -209,30 +211,26 @@ assignSymbols: '='
 
 
 /********* REGLAS DECLARACIÓN DE VARIABLES *********/
-variabledcl:		typeVariable ID '=' expression ';' 						{
-																				if(scope == 0) {
-																					add($2, $1, global, scope);
-																				} else {
-																					add($2, $1, local, scope);
-																				}
-																			};
+variabledcl:		typeVariable ID '=' expression ';' 	{add($2, $1, (scope == 0) ? global : local, scope, false);}
 |					arraydcl;
 
 
-/* TODO: Pensar que hacer con los arrays en pila */
+// TODO Pensar que hacer con los arrays en pila
 
 /********* REGLAS DECLARACIÓN DE ARRAY *********/
-arraydcl:			typePrimitive '[' LIT_INT ']' ID ';'
-|					typePrimitive '[' ']' ID '=' ID ';'
-|					typePrimitive '[' ']' ID '=' '{' arrayWrapper '}' ';';
+// FIXME Comprobar si ID es $3
+arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' {add($5, $1, (scope == 0) ? global : local, scope, true);}
+|					typePrimitive '[' ']' ID '=' ID ';' {add($4, $1, (scope == 0) ? global : local, scope, true);}
+|					typePrimitive '[' ']' ID '=' '{' arrayWrapper '}' ';' {add($4, $1, (scope == 0) ? global : local, scope, true);} ;  // comprobar todos los tipos?
 
 arrayWrapper:	/* empty */
 |					array;
 
-array:		expression
+array:		expression // ir pasando el tipo para arriba?
 |					array ',' expression;
 
 
+// TODO comprobar tipos?
 
 /********* REGLAS EXPRESIONES *********/
 expression:	functionCall
@@ -246,7 +244,7 @@ expression:	functionCall
 |					expression NOT_EQ expression
 |					expression LESS_EQ expression
 |					expression BIGGER_EQ expression
-|					expression '>' expression
+|					expression '>' expression		// e.j. $$bool $1 numerico $2 numerico
 |					expression '<' expression
 |					expression OR expression
 |					expression AND expression
@@ -269,13 +267,24 @@ boolLiteral:		TRUE
 /* TODO: Hacer comprobaciones a la hora de llamar a la funcion: id correcta, num param, etc */
 
 /********* REGLAS LLAMADA A UNA FUNCION*********/
-functionCall: 		ID '(' paramsFunctionCallWrapper')';
+functionCall: 		ID '(' paramsFunctionCallWrapper ')' {
+																		struct nodo *puntero = search($1, funcion);
+																		if(puntero == NULL) {
+																			yyerror("La funcion no esta declarada en el header");
+																		}else{
+																			puntero = puntero->param;
+																			while(puntero != NULL) {
+																				add(puntero->id, puntero->tipo, local, scope, puntero->array);
+																				
+																				puntero = puntero->param;
+																			}
+																		}}; // search id y recoger parámetros, loopearlos en orden
 
-paramsFunctionCallWrapper: 	/* empty */
+paramsFunctionCallWrapper: 	/* empty */	// linked list u otro stack vacío
 |					paramsFunctionCall;
 
-paramsFunctionCall: paramsFunctionCall ',' expression
-|					expression;
+paramsFunctionCall: paramsFunctionCall ',' expression // stackear parámetros
+|					expression;	// linked list u otro stack
 
 
 
