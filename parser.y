@@ -205,11 +205,11 @@ elseCond: 			/* empty */
 
 
 /********* REGLAS ASIGNACIONES *********/
-varAssign: 	stackID '=' expression				{gc("\tI(%d)=R%d\n",$1,$3);lib_reg($3);lib_reg($1);}	//check type
-|					stackID ASSIGN_ADD expression		{$$ = assig_reg(entero); gc("\tI(%d)=R%d+R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);}
-|					stackID ASSIGN_SUBS expression	{$$ = assig_reg(entero); gc("\tI(%d)=R%d-R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);}
-|					stackID ASSIGN_MULT expression	{$$ = assig_reg(entero); gc("\tI(%d)=R%d*R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);}
-|					stackID ASSIGN_DIV expression		{$$ = assig_reg(entero); gc("\tI(%d)=R%d/R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);};
+varAssign: 	stackID '=' expression				{gc("\tI(%d)=R%d\n",$1,$3);lib_reg($3);lib_reg($1);lib_reg($$);}	//check type
+|					stackID ASSIGN_ADD expression		{$$ = assign_reg(entero); gc("\tI(%d)=R%d+R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);lib_reg($$);}
+|					stackID ASSIGN_SUBS expression	{$$ = assign_reg(entero); gc("\tI(%d)=R%d-R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);lib_reg($$);}
+|					stackID ASSIGN_MULT expression	{$$ = assign_reg(entero); gc("\tI(%d)=R%d*R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);lib_reg($$);}
+|					stackID ASSIGN_DIV expression		{$$ = assign_reg(entero); gc("\tI(%d)=R%d/R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);lib_reg($$);};
 
 
 
@@ -260,14 +260,14 @@ expression:	functionCall									{$$ = $1;}
 |					expression '^' expression 			// TODO crear función interna
 |					expression '%' expression; 			// TODO crear función interna
 
-literals: 			LIT_INT							{$$ = assig_reg(entero); gc("\tR%d=%d\n",$$, $1);}
-|					LIT_FLOAT 								{$$ = assig_reg(comaFlotante); gc("\tR%d=R%f\n",$$,$1);}
-|					LIT_CHAR 									{$$ = assig_reg(entero); gc("\tR%d=%d\n",$$, $1);}
+literals: 			LIT_INT							{$$ = assign_reg(entero); gc("\tR%d=%d\n",$$, $1);}
+|					LIT_FLOAT 								{$$ = assign_reg(comaFlotante); gc("\tR%d=R%f\n",$$,$1);}
+|					LIT_CHAR 									{$$ = assign_reg(entero); gc("\tR%d=%d\n",$$, $1);}
 |					LIT_STRING 								// TODO arrays
 |					boolLiteral								{$$ = $1;};
 
-boolLiteral:		TRUE								{$$ = assig_reg(entero); gc("\tR%d=1\n",$$);}
-|					FALSE											{$$ = assig_reg(entero); gc("\tR%d=0\n",$$);};
+boolLiteral:		TRUE								{$$ = assign_reg(entero); gc("\tR%d=1\n",$$);}
+|					FALSE											{$$ = assign_reg(entero); gc("\tR%d=0\n",$$);};
 
 /* TODO: Hacer comprobaciones a la hora de llamar a la funcion: id correcta, num param, etc */
 
@@ -313,7 +313,7 @@ stackID: ID 	{};	// TODO get ID position in stack in registry
 %%
 
 // TODO crear gc(string)
-// TODO crear assig_reg(enum)
+// TODO crear assign_reg(enum)
 
 void yyerror(char* mens) {
   printf("Error en linea %i: %s \n",numlin,mens);
