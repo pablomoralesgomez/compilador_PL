@@ -205,11 +205,11 @@ elseCond: 			/* empty */
 
 
 /********* REGLAS ASIGNACIONES *********/
-varAssign: 	stackID '=' expression				{gc("\tI(%d)=R%d\n",$1,$3);lib_reg($3);lib_reg($1);lib_reg($$);}	//check type
-|					stackID ASSIGN_ADD expression		{$$ = assign_reg(entero); gc("\tI(%d)=R%d+R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);lib_reg($$);}
-|					stackID ASSIGN_SUBS expression	{$$ = assign_reg(entero); gc("\tI(%d)=R%d-R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);lib_reg($$);}
-|					stackID ASSIGN_MULT expression	{$$ = assign_reg(entero); gc("\tI(%d)=R%d*R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);lib_reg($$);}
-|					stackID ASSIGN_DIV expression		{$$ = assign_reg(entero); gc("\tI(%d)=R%d/R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);lib_reg($$);};
+varAssign: 	stackID '=' expression				{gc("\tI(R%d)=R%d\n",$1,$3);lib_reg($3);lib_reg($1);lib_reg($$);}	//check type
+|					stackID ASSIGN_ADD expression		{$$ = assign_reg(entero); gc("\tI(R%d)=R%d+R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);lib_reg($$);}
+|					stackID ASSIGN_SUBS expression	{$$ = assign_reg(entero); gc("\tI(R%d)=R%d-R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);lib_reg($$);}
+|					stackID ASSIGN_MULT expression	{$$ = assign_reg(entero); gc("\tI(R%d)=R%d*R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);lib_reg($$);}
+|					stackID ASSIGN_DIV expression		{$$ = assign_reg(entero); gc("\tI(R%d)=R%d/R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);lib_reg($$);};
 
 
 
@@ -307,9 +307,10 @@ typeFunction: 		VOID			{$$ = vacio;}
 
 
 /********* MISCELÁNEA Q *********/
-evalID:	stackID {};	//TODO get ID val in registry
+evalID:	stackID {gc("\tR%d=I(R%d)\n",$1,$1);};	//TODO get ID val in registry
 
-stackID: ID 	{};	// TODO get ID position in stack in registry
+stackID: ID 		{$$ = assign_reg(entero);gc("\tR$$=I(%d)\n",$$,$1);};	// TODO get ID position in stack in registry
+// TODO function to get position in stack
 %%
 
 // TODO crear gc(string)
