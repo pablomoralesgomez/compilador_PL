@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include "tab.h"
+#include "Q.h"
 
 extern int numlin;
 extern int scope;
@@ -231,38 +232,40 @@ array:		expression // ir pasando el tipo para arriba?
 
 
 // TODO comprobar tipos?
-
+// TODO comprobar uno a uno si los operadores son correctos y funcionan
+// FIXME diferenciar tipos y validar si se puede hacer la función
+// FIXME string 
 /********* REGLAS EXPRESIONES *********/
 expression:	functionCall
 |					ID '[' LIT_INT ']'
-|					ID
-|					literals
-|					NOT expression
-|					'-' expression
+|					ID															
+|					literals												{$$ = $1;}
+|					NOT expression									{$$ = $2; gc("\tR%d=!R%d\n",$$,$$);}
+|					'-' expression									{$$ = $2; gc("\tR%d=0-R%d\n",$$,$$);}
 |					'(' expression ')'
-|					expression EQUALS expression
-|					expression NOT_EQ expression
-|					expression LESS_EQ expression
-|					expression BIGGER_EQ expression
-|					expression '>' expression		// e.j. $$bool $1 numerico $2 numerico
-|					expression '<' expression
-|					expression OR expression
-|					expression AND expression
-|					expression '+' expression
-|					expression '-' expression
-|					expression '*' expression
-|					expression '/' expression
-|					expression '^' expression
-|					expression '%' expression;
+|					expression EQUALS expression		{$$ = $1; gc("\tR%d=R%d==R%d\n",$$,$1,$3); lib_reg($3);}
+|					expression NOT_EQ expression		{$$ = $1; gc("\tR%d=R%d!=R%d\n",$$,$1,$3); lib_reg($3);}
+|					expression LESS_EQ expression		{$$ = $1; gc("\tR%d=R%d<=R%d\n",$$,$1,$3); lib_reg($3);}
+|					expression BIGGER_EQ expression {$$ = $1; gc("\tR%d=R%d>=R%d\n",$$,$1,$3); lib_reg($3);}
+|					expression '>' expression				{$$ = $1; gc("\tR%d=R%d<R%d\n",$$,$1,$3); lib_reg($3);}
+|					expression '<' expression 			{$$ = $1; gc("\tR%d=R%d<R%d\n",$$,$1,$3); lib_reg($3);}
+|					expression OR expression				{$$ = $1; gc("\tR%d=R%d||R%d\n",$$,$1,$3); lib_reg($3);}
+|					expression AND expression 			{$$ = $1; gc("\tR%d=R%d&&R%d\n",$$,$1,$3); lib_reg($3);}
+|					expression '+' expression 			{$$ = $1; gc("\tR%d=R%d+R%d\n",$$,$1,$3); lib_reg($3);} 
+|					expression '-' expression 			{$$ = $1; gc("\tR%d=R%d-R%d\n",$$,$1,$3); lib_reg($3);} 
+|					expression '*' expression 			{$$ = $1; gc("\tR%d=R%d*R%d\n",$$,$1,$3); lib_reg($3);}
+|					expression '/' expression 			{$$ = $1; gc("\tR%d=R%d/R%d\n",$$,$1,$3); lib_reg($3);}
+|					expression '^' expression 			// TODO crear función interna
+|					expression '%' expression; 			// TODO crear función interna
 
-literals: 			LIT_INT 						{printf("digito %ld\n",$1);}
-|					LIT_FLOAT 						{printf("float %f\n",$1);}
-|					LIT_CHAR 						{printf("char %c\n",$1);}
-|					LIT_STRING 						{printf("string %s\n",$1);}
-|					boolLiteral;
+literals: 			LIT_INT							{$$ = assig_reg(entero); gc("\tR%d=%d\n",$$, $1);}
+|					LIT_FLOAT 								{$$ = assig_reg(comaFlotante); gc("\tR%d=R%f\n",$$,$1);}
+|					LIT_CHAR 									{$$ = assig_reg(entero); gc("\tR%d=%d\n",$$, $1);}
+|					LIT_STRING 								// TODO arrays
+|					boolLiteral								{$$ = $1;};
 
-boolLiteral:		TRUE
-|					FALSE;
+boolLiteral:		TRUE								{$$ = assig_reg(entero); gc("\tR%d=1\n",$$);}
+|					FALSE											{$$ = assig_reg(entero); gc("\tR%d=0\n",$$);};
 
 /* TODO: Hacer comprobaciones a la hora de llamar a la funcion: id correcta, num param, etc */
 
@@ -301,6 +304,9 @@ typeFunction: 		VOID			{$$ = vacio;}
 |					typePrimitive	{$$ = $1;};
 
 %%
+
+// TODO crear gc(string)
+// TODO crear assig_reg(enum)
 
 void yyerror(char* mens) {
   printf("Error en linea %i: %s \n",numlin,mens);
