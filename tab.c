@@ -24,10 +24,19 @@ void deleteScope(int sc) {
 
 void removeTop() {
 	
+	if(primero->categoria == funcion) {
+		
+		while (primero->param != NULL) {
+			struct nodo *aux = primero->param->param;
+			
+			free(primero->param);
+			primero->param = aux;
+		}
+	}
+	
 	struct nodo *sig = primero->sig;
 	
 	free(primero);
-	
 	primero = sig;
 }
 

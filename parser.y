@@ -150,9 +150,9 @@ functiondcl: 		typeFunction ID '(' paramWrapper ')' '{'		{
 																		}
 																	}	
 															
-										statementWrapper '}'		{deleteScope(scope);};
+										statementWrapper '}'					{deleteScope(scope);};
 
-main:           	INT MAIN '(' ')' '{' statementWrapper '}';
+main:           	INT MAIN '(' ')' '{' statementWrapper '}'					{deleteScope(scope);};
 
 
 
@@ -178,14 +178,14 @@ loop: 				forLoop
 |					whileLoop
 |					DO whileLoop;
 
-forLoop: 			FOR '(' forStatement ')' '{' statementWrapper '}';
+forLoop: 			FOR '(' forStatement ')' '{' statementWrapper '}'			{deleteScope(scope);};
 
 /* HACK variabledcl already has ';' */
 /* boolExpression */
 forStatement: 		variabledcl expression ';'  varAssign;
 
 /* boolExpression */
-whileLoop: 			WHILE '(' expression ')' '{' statementWrapper '}';
+whileLoop: 			WHILE '(' expression ')' '{' statementWrapper '}'			{deleteScope(scope);};
 
 
 
@@ -193,14 +193,14 @@ whileLoop: 			WHILE '(' expression ')' '{' statementWrapper '}';
 conditional: 		ifCond elifCond elseCond;
 
 /* boolExpression */
-ifCond: 			IF '(' expression ')'  '{' statementWrapper '}';
+ifCond: 			IF '(' expression ')'  '{' statementWrapper '}'				{deleteScope(scope);};
 
 /* boolExpression */
 elifCond: 			/* empty */
-|					elifCond ELIF '(' expression ')'  '{' statementWrapper '}';
+|					elifCond ELIF '(' expression ')'  '{' statementWrapper '}'	{deleteScope(scope);};
 
 elseCond: 			/* empty */
-|					ELSE '{' statementWrapper '}';
+|					ELSE '{' statementWrapper '}'								{deleteScope(scope);};
 
 
 
