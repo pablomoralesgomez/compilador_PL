@@ -64,12 +64,16 @@ void yyerror(char*);
   long int4;
   float fl;
   char ch;
+  int registry;
+  int direction;
 }
 
 %token <str>ID
 %token MAIN
 
 %type <int4>typeFunction typePrimitive typeVariable
+%type <registry> expression
+%type <direction> expression
 
 %start program
 
@@ -201,13 +205,11 @@ elseCond: 			/* empty */
 
 
 /********* REGLAS ASIGNACIONES *********/
-varAssign: 			ID assignSymbols expression;
-
-assignSymbols: '='
-|					ASSIGN_ADD
-|					ASSIGN_SUBS
-|					ASSIGN_MULT
-|					ASSIGN_DIV;
+varAssign: 	stackID '=' expression				{gc("\tI(%d)=R%d\n",$1,$3);lib_reg($3);lib_reg($1);}	//check type
+|					stackID ASSIGN_ADD expression		{$$ = assig_reg(entero); gc("\tI(%d)=R%d+R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);}
+|					stackID ASSIGN_SUBS expression	{$$ = assig_reg(entero); gc("\tI(%d)=R%d-R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);}
+|					stackID ASSIGN_MULT expression	{$$ = assig_reg(entero); gc("\tI(%d)=R%d*R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);}
+|					stackID ASSIGN_DIV expression		{$$ = assig_reg(entero); gc("\tI(%d)=R%d/R%d\n",$1,$$,$3);lib_reg($3);lib_reg($1);};
 
 
 
@@ -227,7 +229,7 @@ arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' {add($5, $1, (scope == 0) ? glo
 arrayWrapper:	/* empty */
 |					array;
 
-array:		expression // ir pasando el tipo para arriba?
+array:		expression											{$$ = $1;}
 |					array ',' expression;
 
 
@@ -236,25 +238,25 @@ array:		expression // ir pasando el tipo para arriba?
 // FIXME diferenciar tipos y validar si se puede hacer la función
 // FIXME string 
 /********* REGLAS EXPRESIONES *********/
-expression:	functionCall
+expression:	functionCall									{$$ = $1;}
 |					ID '[' LIT_INT ']'
-|					ID															
+|					evalID													{$$ = $1;}
 |					literals												{$$ = $1;}
-|					NOT expression									{$$ = $2; gc("\tR%d=!R%d\n",$$,$$);}
-|					'-' expression									{$$ = $2; gc("\tR%d=0-R%d\n",$$,$$);}
+|					NOT expression									{gc("\tR%d=!R%d\n",$2,$2);}
+|					'-' expression									{gc("\tR%d=0-R%d\n",$2,$2);}
 |					'(' expression ')'
-|					expression EQUALS expression		{$$ = $1; gc("\tR%d=R%d==R%d\n",$$,$1,$3); lib_reg($3);}
-|					expression NOT_EQ expression		{$$ = $1; gc("\tR%d=R%d!=R%d\n",$$,$1,$3); lib_reg($3);}
-|					expression LESS_EQ expression		{$$ = $1; gc("\tR%d=R%d<=R%d\n",$$,$1,$3); lib_reg($3);}
-|					expression BIGGER_EQ expression {$$ = $1; gc("\tR%d=R%d>=R%d\n",$$,$1,$3); lib_reg($3);}
-|					expression '>' expression				{$$ = $1; gc("\tR%d=R%d<R%d\n",$$,$1,$3); lib_reg($3);}
-|					expression '<' expression 			{$$ = $1; gc("\tR%d=R%d<R%d\n",$$,$1,$3); lib_reg($3);}
-|					expression OR expression				{$$ = $1; gc("\tR%d=R%d||R%d\n",$$,$1,$3); lib_reg($3);}
-|					expression AND expression 			{$$ = $1; gc("\tR%d=R%d&&R%d\n",$$,$1,$3); lib_reg($3);}
-|					expression '+' expression 			{$$ = $1; gc("\tR%d=R%d+R%d\n",$$,$1,$3); lib_reg($3);} 
-|					expression '-' expression 			{$$ = $1; gc("\tR%d=R%d-R%d\n",$$,$1,$3); lib_reg($3);} 
-|					expression '*' expression 			{$$ = $1; gc("\tR%d=R%d*R%d\n",$$,$1,$3); lib_reg($3);}
-|					expression '/' expression 			{$$ = $1; gc("\tR%d=R%d/R%d\n",$$,$1,$3); lib_reg($3);}
+|					expression EQUALS expression		{gc("\tR%d=R%d==R%d\n",$1,$1,$3); lib_reg($3);}
+|					expression NOT_EQ expression		{gc("\tR%d=R%d!=R%d\n",$1,$1,$3); lib_reg($3);}
+|					expression LESS_EQ expression		{gc("\tR%d=R%d<=R%d\n",$1,$1,$3); lib_reg($3);}
+|					expression BIGGER_EQ expression {gc("\tR%d=R%d>=R%d\n",$1,$1,$3); lib_reg($3);}
+|					expression '>' expression				{gc("\tR%d=R%d<R%d\n",$1,$1,$3); lib_reg($3);}
+|					expression '<' expression 			{gc("\tR%d=R%d<R%d\n",$1,$1,$3); lib_reg($3);}
+|					expression OR expression				{gc("\tR%d=R%d||R%d\n",$1,$1,$3); lib_reg($3);}
+|					expression AND expression 			{gc("\tR%d=R%d&&R%d\n",$1,$1,$3); lib_reg($3);}
+|					expression '+' expression 			{gc("\tR%d=R%d+R%d\n",$1,$1,$3); lib_reg($3);} 
+|					expression '-' expression 			{gc("\tR%d=R%d-R%d\n",$1,$1,$3); lib_reg($3);} 
+|					expression '*' expression 			{gc("\tR%d=R%d*R%d\n",$1,$1,$3); lib_reg($3);}
+|					expression '/' expression 			{gc("\tR%d=R%d/R%d\n",$1,$1,$3); lib_reg($3);}
 |					expression '^' expression 			// TODO crear función interna
 |					expression '%' expression; 			// TODO crear función interna
 
@@ -303,6 +305,11 @@ typeVariable: 		STRING			{$$ = ristra;}
 typeFunction: 		VOID			{$$ = vacio;}
 |					typePrimitive	{$$ = $1;};
 
+
+/********* MISCELÁNEA Q *********/
+evalID:	stackID {};	//TODO get ID val in registry
+
+stackID: ID 	{};	// TODO get ID position in stack in registry
 %%
 
 // TODO crear gc(string)
