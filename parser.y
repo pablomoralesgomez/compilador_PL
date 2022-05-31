@@ -310,7 +310,7 @@ typeFunction: 		VOID			{$$ = vacio;}
 evalID:	stackID {gc("\tR%d=I(R%d)\n",$1,$1);};	//TODO get ID val in registry
 
 stackID: ID 		{$$ = assign_reg(entero);gc("\tR$$=I(%d)\n",$$,$1);};	// TODO get ID position in stack in registry
-// TODO function to get position in stack
+// TODO function to get address in stack
 %%
 
 // TODO crear gc(string)
