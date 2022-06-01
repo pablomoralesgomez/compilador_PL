@@ -21,6 +21,10 @@ struct reg_tipo{
 	int tipo;
 };
 
+// Variables auxiliares para comprobar los parámetros de las funciones
+char* functionName = "";
+int functionNumberParam = -1;
+int checkingParamNumber = 0;
 
 void yyerror(char*);
 

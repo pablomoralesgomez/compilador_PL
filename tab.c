@@ -56,6 +56,38 @@ struct nodo * search(char* id, enum category categoria) {
 	return NULL;
 }
 
+int countFunctionParameters(char* id) {
+	
+	struct nodo *puntero = search(id, funcion);
+	if(puntero == NULL) return -1;
+	
+	int count = 0;
+	while(puntero->param != NULL) {
+		count++;
+		
+		puntero = puntero->param;
+	}
+	
+	return count;
+}
+
+
+struct nodo * getParameterByNumber(char *id, int n) {
+	
+	struct nodo *puntero = search(id, funcion);
+	if(puntero == NULL) return NULL;
+	
+	int count = 0;
+	
+	while(puntero != NULL && count < n) {
+		count++;
+		puntero = puntero->param;
+		
+	}
+	
+	return puntero;
+}
+
 
 int add(char* id, enum type tipo, enum category categoria, int scope, int address, struct array*) {
 	
@@ -71,9 +103,11 @@ int add(char* id, enum type tipo, enum category categoria, int scope, int addres
 
 	
 	if(primero != NULL && categoria == param) {
+		struct nodo *puntero = primero;
+		while(puntero->param != NULL) puntero = puntero->param;		
+
+		puntero->param = nuevo_simbolo;
 		
-		nuevo_simbolo->param = primero->param;
-		primero->param = nuevo_simbolo;
 	} else {
 		nuevo_simbolo->sig = primero;
 		primero = nuevo_simbolo;
