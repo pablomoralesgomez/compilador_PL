@@ -120,13 +120,26 @@ headerWrapper: 		/* empty */
 headerdcl: 			typeFunction ID {add($2, $1, funcion, 0, -1, NULL);} '(' paramWrapper ')' ';';
 
 paramWrapper: 		/* empty */
-|					paramWrapperRecursive;
+|					paramWrapperRecursive  {
+												if(checkingParamNumber < functionNumberParam) yyerror("El numero de parametros es menor que en el header.");
+												checkingParamNumber = 0;
+											};
 
-paramWrapperRecursive: param
-|					paramWrapperRecursive ',' param;
+paramWrapperRecursive: {checkingParamNumber++;} param 
+|					paramWrapperRecursive ',' {checkingParamNumber++;} param;
 
-param:				typeVariable ID									{add($2, $1, param, 0, -1, NULL);}
-|					typePrimitive '[' ']' ID						{add($2, $1, param, 0, -1, NULL);};
+param:				typeVariable ID									{	
+																		if(functionName[0] == '\0') {
+																			add($2, $1, param, 0, -1, NULL);
+																		} else {
+																			struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
+																			
+																			if(param == NULL) yyerror("El parametro o la funcion no esta declarado en el header.");
+																			if($1 != param->tipo) yyerror("El tipo del parametro no corresponde con el del header");	
+																			if(strcmp($2, param->id) != 0) yyerror("El nombre del parametro no corresponde con el del header");	
+																		}
+																	}
+|					typePrimitive '[' ']' ID;						/* TODO: AÑADIR ARRAYS A LA PILA */
 
 
 
