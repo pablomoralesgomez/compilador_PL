@@ -57,6 +57,39 @@ struct nodo * search(char* id, enum category categoria) {
 }
 
 
+int countFunctionParameters(char* id) {
+	
+	struct nodo *puntero = search(id, funcion);
+	if(puntero == NULL) return -1;
+	
+	int count = 0;
+	while(puntero->param != NULL) {
+		count++;
+		
+		puntero = puntero->param;
+	}
+	
+	return count;
+}
+
+
+struct nodo * getParameterByNumber(char *id, int n) {
+	
+	struct nodo *puntero = search(id, funcion);
+	if(puntero == NULL) return NULL;
+	
+	int count = 0;
+	
+	while(puntero != NULL && count < n) {
+		count++;
+		puntero = puntero->param;
+		
+	}
+	
+	return puntero;
+}
+
+
 int add(char* id, enum type tipo, enum category categoria, int scope, int array) {
 	
 	if(search(id, categoria) != NULL) return false;
@@ -69,9 +102,11 @@ int add(char* id, enum type tipo, enum category categoria, int scope, int array)
 	nuevo_simbolo->array = array;
 	
 	if(primero != NULL && categoria == param) {
+		struct nodo *puntero = primero;
+		while(puntero->param != NULL) puntero = puntero->param;		
+
+		puntero->param = nuevo_simbolo;
 		
-		nuevo_simbolo->param = primero->param;
-		primero->param = nuevo_simbolo;
 	} else {
 		nuevo_simbolo->sig = primero;
 		primero = nuevo_simbolo;
@@ -106,3 +141,23 @@ void show() {
 	
 	printf("-- Fin Tabla Simbolos --\n\n");
 }
+
+/*
+int main() {
+	
+	
+	add("x", entero, global, 0);
+	
+	add("x123", entero, funcion, 0);
+	
+	add("uno", entero, param, 0);
+	
+	add("dos", entero, param, 0);
+	
+	add("tres", entero, param, 0);
+	
+	deleteScope(1);
+	
+	show();
+	
+}*/

@@ -1,8 +1,9 @@
 %{
 
+#include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "tab.h"
-#include "Q.h"
 
 extern int numlin;
 extern int scope;
@@ -12,6 +13,12 @@ extern FILE *yyin;
 #define false 0
 
 void yyerror(char*);
+
+
+// Variables auxiliares para comprobar los parámetros de las funciones
+char* functionName = "";
+int functionNumberParam = -1;
+int checkingParamNumber = 0;
 
 %}
 /* SIMBOLOS TERMINALES */
@@ -69,7 +76,9 @@ void yyerror(char*);
 %token <str>ID
 %token MAIN
 
+
 %type <int4>typeFunction typePrimitive typeVariable
+
 
 %start program
 
@@ -101,12 +110,30 @@ headerWrapper: 		/* empty */
 headerdcl: 			typeFunction ID {add($2, $1, funcion, 0, false);} '(' paramWrapper ')' ';';
 
 paramWrapper: 		/* empty */
-|					paramWrapperRecursive;
+|					paramWrapperRecursive  {
+												if(checkingParamNumber < functionNumberParam) yyerror("El numero de parametros es menor que en el header.");
+												checkingParamNumber = 0;
+											};
 
-paramWrapperRecursive: param
-|					paramWrapperRecursive ',' param;
+paramWrapperRecursive: {checkingParamNumber++;} param 
+|					paramWrapperRecursive ',' {checkingParamNumber++;} param;
 
-param:				typeVariable ID									{add($2, $1, param, 0, false);}
+param:				typeVariable ID									{	
+																		if(functionName[0] == '\0') {
+																			add($2, $1, param, 0, false);
+																		} else {
+																			struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
+																			
+																			if(param == NULL) {
+																				yyerror("El parametro no esta declarado en el header.");
+																			} else {
+																				if($1 != param->tipo) yyerror("El tipo del parametro no corresponde con el del header");	
+																				if(strcmp($2, param->id) != 0) yyerror("El nombre del parametro no corresponde con el del header");
+																			}
+																			
+																		}
+																		printf("%s %d %d\n", functionName, functionNumberParam, checkingParamNumber);
+																	}
 |					typePrimitive '[' ']' ID;						/* TODO: AÑADIR ARRAYS A LA PILA */
 
 
@@ -128,27 +155,31 @@ functionWrapper: 	/* empty */
 
 /* ID can't be 'main' */
 /* already checked? */
-functiondcl: 		typeFunction ID '(' paramWrapper ')' '{'		{
-																		struct nodo *puntero = search($2, funcion);
-																		if(puntero == NULL) {
-																			yyerror("La funcion no esta declarada en el header");
-																		} else {
-																			if($1 != puntero->tipo) {
-																				yyerror("El tipo de la funcion no corresponde con la del header");
-																			} else {
-																				puntero = puntero->param;
-																				while(puntero != NULL) {
-																					add(puntero->id, puntero->tipo, local, scope, puntero->array);
-																					
-																					puntero = puntero->param;
-																				}
-																			}
-																		}
-																	}	
+functiondcl: 		typeFunction ID {functionName = $2; functionNumberParam = countFunctionParameters($2);}'(' paramWrapper ')' '{'		{
+
+																																			struct nodo *puntero = search($2, funcion);;
+																																			if(puntero == NULL) {
+																																				yyerror("La funcion no esta declarada en el header");
+																																			} else {
+																																				if($1 != puntero->tipo) {
+																																					yyerror("El tipo de la funcion no corresponde con la del header");
+																																				} else {
+																																					puntero = puntero->param;
+																																					while(puntero != NULL) {
+																																						add(puntero->id, puntero->tipo, local, scope, puntero->array);
+																																						
+																																						puntero = puntero->param;
+																																					}
+																																				}
+																																			}
+																																			
+																																			functionNumberParam = -1;
+																																			functionName = "";
+																																		}	
 															
 										statementWrapper '}'					{deleteScope(scope);};
 
-main:           	INT MAIN '(' ')' '{' statementWrapper '}'					{deleteScope(scope);};
+main:           	INT MAIN '(' ')' '{' statementWrapper '}'					{deleteScope(scope); printf("%s\n", functionName);};
 
 
 
@@ -212,7 +243,7 @@ assignSymbols: '='
 
 
 /********* REGLAS DECLARACIÓN DE VARIABLES *********/
-variabledcl:		typeVariable ID '=' expression ';' 	{add($2, $1, (scope == 0) ? global : local, scope, false);}
+variabledcl:		typeVariable ID '=' expression ';' 						{add($2, $1, (scope == 0) ? global : local, scope, false);}
 |					arraydcl;
 
 
@@ -220,9 +251,9 @@ variabledcl:		typeVariable ID '=' expression ';' 	{add($2, $1, (scope == 0) ? gl
 
 /********* REGLAS DECLARACIÓN DE ARRAY *********/
 // FIXME Comprobar si ID es $3
-arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' {add($5, $1, (scope == 0) ? global : local, scope, true);}
-|					typePrimitive '[' ']' ID '=' ID ';' {add($4, $1, (scope == 0) ? global : local, scope, true);}
-|					typePrimitive '[' ']' ID '=' '{' arrayWrapper '}' ';' {add($4, $1, (scope == 0) ? global : local, scope, true);} ;  // comprobar todos los tipos?
+arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' 					/*{add($5, $1, (scope == 0) ? global : local, scope, true);}*/
+|					typePrimitive '[' ']' ID '=' ID ';' 					/*{add($4, $1, (scope == 0) ? global : local, scope, true);}*/
+|					typePrimitive '[' ']' ID '=' '{' arrayWrapper '}' ';' 	/*{add($4, $1, (scope == 0) ? global : local, scope, true);}*/ ;  // comprobar todos los tipos?
 
 arrayWrapper:	/* empty */
 |					array;
@@ -239,55 +270,49 @@ array:		expression // ir pasando el tipo para arriba?
 expression:	functionCall
 |					ID '[' LIT_INT ']'
 |					ID															
-|					literals												{$$ = $1;}
-|					NOT expression									{$$ = $2; gc("\tR%d=!R%d\n",$$,$$);}
-|					'-' expression									{$$ = $2; gc("\tR%d=0-R%d\n",$$,$$);}
-|					'(' expression ')'
-|					expression EQUALS expression		{$$ = $1; gc("\tR%d=R%d==R%d\n",$$,$1,$3); lib_reg($3);}
-|					expression NOT_EQ expression		{$$ = $1; gc("\tR%d=R%d!=R%d\n",$$,$1,$3); lib_reg($3);}
-|					expression LESS_EQ expression		{$$ = $1; gc("\tR%d=R%d<=R%d\n",$$,$1,$3); lib_reg($3);}
-|					expression BIGGER_EQ expression {$$ = $1; gc("\tR%d=R%d>=R%d\n",$$,$1,$3); lib_reg($3);}
-|					expression '>' expression				{$$ = $1; gc("\tR%d=R%d<R%d\n",$$,$1,$3); lib_reg($3);}
-|					expression '<' expression 			{$$ = $1; gc("\tR%d=R%d<R%d\n",$$,$1,$3); lib_reg($3);}
-|					expression OR expression				{$$ = $1; gc("\tR%d=R%d||R%d\n",$$,$1,$3); lib_reg($3);}
-|					expression AND expression 			{$$ = $1; gc("\tR%d=R%d&&R%d\n",$$,$1,$3); lib_reg($3);}
-|					expression '+' expression 			{$$ = $1; gc("\tR%d=R%d+R%d\n",$$,$1,$3); lib_reg($3);} 
-|					expression '-' expression 			{$$ = $1; gc("\tR%d=R%d-R%d\n",$$,$1,$3); lib_reg($3);} 
-|					expression '*' expression 			{$$ = $1; gc("\tR%d=R%d*R%d\n",$$,$1,$3); lib_reg($3);}
-|					expression '/' expression 			{$$ = $1; gc("\tR%d=R%d/R%d\n",$$,$1,$3); lib_reg($3);}
-|					expression '^' expression 			// TODO crear función interna
-|					expression '%' expression; 			// TODO crear función interna
+|					literals										/*{$$ = $1;}*/
+|					NOT expression									/*{$$ = $2; gc("\tR%d=!R%d\n",$$,$$);}*/
+|					'-' expression									/*{$$ = $2; gc("\tR%d=0-R%d\n",$$,$$);}*/
+|					'(' expression ')'                              /**/
+|					expression EQUALS expression					/*{$$ = $1; gc("\tR%d=R%d==R%d\n",$$,$1,$3); lib_reg($3);}*/
+|					expression NOT_EQ expression					/*{$$ = $1; gc("\tR%d=R%d!=R%d\n",$$,$1,$3); lib_reg($3);}*/
+|					expression LESS_EQ expression					/*{$$ = $1; gc("\tR%d=R%d<=R%d\n",$$,$1,$3); lib_reg($3);}*/
+|					expression BIGGER_EQ expression 				/*{$$ = $1; gc("\tR%d=R%d>=R%d\n",$$,$1,$3); lib_reg($3);}*/
+|					expression '>' expression						/*{$$ = $1; gc("\tR%d=R%d<R%d\n",$$,$1,$3); lib_reg($3);}*/
+|					expression '<' expression 						/*{$$ = $1; gc("\tR%d=R%d<R%d\n",$$,$1,$3); lib_reg($3);}*/
+|					expression OR expression						/*{$$ = $1; gc("\tR%d=R%d||R%d\n",$$,$1,$3); lib_reg($3);}*/
+|					expression AND expression 						/*{$$ = $1; gc("\tR%d=R%d&&R%d\n",$$,$1,$3); lib_reg($3);}*/
+|					expression '+' expression 						/*{$$ = $1; gc("\tR%d=R%d+R%d\n",$$,$1,$3); lib_reg($3);}*/
+|					expression '-' expression 						/*{$$ = $1; gc("\tR%d=R%d-R%d\n",$$,$1,$3); lib_reg($3);}*/
+|					expression '*' expression 						/*{$$ = $1; gc("\tR%d=R%d*R%d\n",$$,$1,$3); lib_reg($3);}*/
+|					expression '/' expression 						/*{$$ = $1; gc("\tR%d=R%d/R%d\n",$$,$1,$3); lib_reg($3);}*/
+|					expression '^' expression 						// TODO crear función interna
+|					expression '%' expression; 						// TODO crear función interna
 
-literals: 			LIT_INT							{$$ = assig_reg(entero); gc("\tR%d=%d\n",$$, $1);}
-|					LIT_FLOAT 								{$$ = assig_reg(comaFlotante); gc("\tR%d=R%f\n",$$,$1);}
-|					LIT_CHAR 									{$$ = assig_reg(entero); gc("\tR%d=%d\n",$$, $1);}
-|					LIT_STRING 								// TODO arrays
-|					boolLiteral								{$$ = $1;};
+literals: 			LIT_INT											/*{$$ = assig_reg(entero); gc("\tR%d=%d\n",$$, $1);}*/
+|					LIT_FLOAT 										/*{$$ = assig_reg(comaFlotante); gc("\tR%d=R%f\n",$$,$1);}*/
+|					LIT_CHAR 										/*{$$ = assig_reg(entero); gc("\tR%d=%d\n",$$, $1);}*/
+|					LIT_STRING 										// TODO arrays
+|					boolLiteral										/*{$$ = $1;}*/;
 
-boolLiteral:		TRUE								{$$ = assig_reg(entero); gc("\tR%d=1\n",$$);}
-|					FALSE											{$$ = assig_reg(entero); gc("\tR%d=0\n",$$);};
+boolLiteral:		TRUE											/*{$$ = assig_reg(entero); gc("\tR%d=1\n",$$);}*/
+|					FALSE											/*{$$ = assig_reg(entero); gc("\tR%d=0\n",$$);}*/;
 
 /* TODO: Hacer comprobaciones a la hora de llamar a la funcion: id correcta, num param, etc */
 
 /********* REGLAS LLAMADA A UNA FUNCION*********/
-functionCall: 		ID '(' paramsFunctionCallWrapper ')' {
-																		struct nodo *puntero = search($1, funcion);
-																		if(puntero == NULL) {
-																			yyerror("La funcion no esta declarada en el header");
-																		}else{
-																			puntero = puntero->param;
-																			while(puntero != NULL) {
-																				add(puntero->id, puntero->tipo, local, scope, puntero->array);
-																				
-																				puntero = puntero->param;
-																			}
-																		}}; // search id y recoger parámetros, loopearlos en orden
+	functionCall: 		ID '(' paramsFunctionCallWrapper ')' 	{
+																	struct nodo *puntero = search($1, funcion);
+																	if(puntero == NULL) {
+																		yyerror("La funcion no esta declarada en el header");
+																	}
+																}; 	// search id y recoger parámetros, loopearlos en orden
 
-paramsFunctionCallWrapper: 	/* empty */	// linked list u otro stack vacío
+paramsFunctionCallWrapper: 	/* empty */								// linked list u otro stack vacío
 |					paramsFunctionCall;
 
-paramsFunctionCall: paramsFunctionCall ',' expression // stackear parámetros
-|					expression;	// linked list u otro stack
+paramsFunctionCall: paramsFunctionCall ',' expression 				// stackear parámetros
+|					expression;										// linked list u otro stack
 
 
 
@@ -310,6 +335,7 @@ typeFunction: 		VOID			{$$ = vacio;}
 
 void yyerror(char* mens) {
   printf("Error en linea %i: %s \n",numlin,mens);
+  exit(-1);
 }
 
 int main(int argc, char** argv) {
