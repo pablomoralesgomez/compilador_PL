@@ -14,11 +14,18 @@ extern FILE *yyin;
 
 void yyerror(char*);
 
+// Struct auxiliar para tratar con valores en la zona de expression
+struct reg_tipo{
+	int reg;
+	int tipo;
+};
 
 // Variables auxiliares para comprobar los parámetros de las funciones
 char* functionName = "";
 int functionNumberParam = -1;
 int checkingParamNumber = 0;
+
+int quevengo = 0;
 
 %}
 /* SIMBOLOS TERMINALES */
@@ -67,17 +74,20 @@ int checkingParamNumber = 0;
 %token FALSE
 
 %union{
-  char *str;
-  long int4;
-  float fl;
-  char ch;
+	char *str;
+	long int4;
+	float fl;
+	char ch;
+	struct reg_tipo * expr; 
+
 }
 
 %token <str>ID
 %token MAIN
 
 
-%type <int4>typeFunction typePrimitive typeVariable
+%type <expr> expression;
+%type <int4> typeFunction typePrimitive typeVariable
 
 
 %start program
@@ -236,7 +246,8 @@ assignSymbols: '='
 
 
 /********* REGLAS DECLARACIÓN DE VARIABLES *********/
-variabledcl:		typeVariable ID '=' expression ';' 						{add($2, $1, (scope == 0) ? global : local, scope, false);}
+variabledcl:		typeVariable ID '=' expression ';' 						{add($2, $1, (scope == 0) ? global : local, scope, false); 
+																			if(quevengo > 0) printf("%d %d\n", $4->tipo, $4->reg);}
 |					arraydcl;
 
 
@@ -262,7 +273,24 @@ array:		expression // ir pasando el tipo para arriba?
 /********* REGLAS EXPRESIONES *********/
 expression:	functionCall
 |					ID '[' LIT_INT ']'
-|					ID															
+|					ID												{
+																		printf("Hey\n");
+
+																		struct nodo * point = search($1, local);
+																		if(point == NULL) point = search($1, global);
+																		if(point == NULL) yyerror("La variable no ha sido declarada");
+																		
+																		int tip = point->tipo;
+																		int reg = 0; 
+																		
+																		struct reg_tipo ejemplo = {tip, reg};
+																		
+																		quevengo = 1;
+																		
+																		$$ = &ejemplo;
+																		
+																	}		
+																	
 |					literals										/*{$$ = $1;}*/
 |					NOT expression									/*{$$ = $2; gc("\tR%d=!R%d\n",$$,$$);}*/
 |					'-' expression									/*{$$ = $2; gc("\tR%d=0-R%d\n",$$,$$);}*/
