@@ -94,7 +94,7 @@ void yyerror(char*);
 program: 			header global functionArea 						{show();};
 
 
-
+// TODO Levantar error cuando los adds no funcionan
 /********* REGLAS DEL HEADER *********/
 header: 			/* empty */
 |					HEADER '{' headerWrapper '}';
@@ -102,7 +102,7 @@ header: 			/* empty */
 headerWrapper: 		/* empty */
 |					headerWrapper headerdcl;
 
-headerdcl: 			typeFunction ID {add($2, $1, funcion, 0, false);} '(' paramWrapper ')' ';';
+headerdcl: 			typeFunction ID {add($2, $1, funcion, 0, -1, NULL);} '(' paramWrapper ')' ';';
 
 paramWrapper: 		/* empty */
 |					paramWrapperRecursive;
@@ -110,8 +110,8 @@ paramWrapper: 		/* empty */
 paramWrapperRecursive: param
 |					paramWrapperRecursive ',' param;
 
-param:				typeVariable ID									{add($2, $1, param, 0, false);}
-|					typePrimitive '[' ']' ID;						/* TODO: AÑADIR ARRAYS A LA PILA */
+param:				typeVariable ID									{add($2, $1, param, 0, -1, NULL);}
+|					typePrimitive '[' ']' ID						{add($2, $1, param, 0, -1, NULL);};
 
 
 
@@ -142,7 +142,7 @@ functiondcl: 		typeFunction ID '(' paramWrapper ')' '{'		{
 																			} else {
 																				puntero = puntero->param;
 																				while(puntero != NULL) {
-																					add(puntero->id, puntero->tipo, local, scope, puntero->array);
+																					add(puntero->id, puntero->tipo, local, scope, -1, puntero->array);
 																					
 																					puntero = puntero->param;
 																				}
@@ -214,17 +214,33 @@ varAssign: 	stackID '=' expression				{gc("\tI(R%d)=R%d\n",$1,$3);lib_reg($3);li
 
 
 /********* REGLAS DECLARACIÓN DE VARIABLES *********/
-variabledcl:		typeVariable ID '=' expression ';' 	{add($2, $1, (scope == 0) ? global : local, scope, false);}
+variabledcl:		typeVariable ID '=' expression ';' 	{add($2, $1, (scope == 0) ? global : local, scope, -1, NULL);}
 |					arraydcl;
 
 
+
 // TODO Pensar que hacer con los arrays en pila
+// TODO cambiar true por el número de elementos
 
 /********* REGLAS DECLARACIÓN DE ARRAY *********/
 // FIXME Comprobar si ID es $3
-arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' {add($5, $1, (scope == 0) ? global : local, scope, true);}
-|					typePrimitive '[' ']' ID '=' ID ';' {add($4, $1, (scope == 0) ? global : local, scope, true);}
-|					typePrimitive '[' ']' ID '=' '{' arrayWrapper '}' ';' {add($4, $1, (scope == 0) ? global : local, scope, true);} ;  // comprobar todos los tipos?
+arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' {add($5, $1, (scope == 0) ? global : local, scope, -1, NULL);} // FIXME números negativos
+|					typePrimitive '[' ']' ID '=' ID ';' {
+																								struct nodo *puntero = search($6, local);
+																								if (puntero == NULL){
+																									struct nodo *puntero = search($6, global);
+																								}
+																								if (puntero == NULL){
+																									yyerror("La segunda ID no está definida");
+																								};
+																								if($1 != puntero->tipo) {
+																									yyerror("El tipo de ambas ID no coincide");
+																								};
+																								if (puntero->array == 0){
+																									yyerror("La segunda ID no es una array");
+																								};
+																								add($4, $1, (scope == 0) ? global : local, scope, puntero->address, puntero->array);}
+|					typePrimitive '[' ']' ID '=' '{' arrayWrapper '}' ';' {add($4, $1, (scope == 0) ? global : local, scope, -1, NULL);} ;  // FIXME length, comprobar todos los tipos?
 
 arrayWrapper:	/* empty */
 |					array;
@@ -253,8 +269,8 @@ expression:	functionCall									{$$ = $1;}
 |					expression '<' expression 			{gc("\tR%d=R%d<R%d\n",$1,$1,$3); lib_reg($3);}
 |					expression OR expression				{gc("\tR%d=R%d||R%d\n",$1,$1,$3); lib_reg($3);}
 |					expression AND expression 			{gc("\tR%d=R%d&&R%d\n",$1,$1,$3); lib_reg($3);}
-|					expression '+' expression 			{gc("\tR%d=R%d+R%d\n",$1,$1,$3); lib_reg($3);} 
-|					expression '-' expression 			{gc("\tR%d=R%d-R%d\n",$1,$1,$3); lib_reg($3);} 
+|					expression '+' expression 			{gc("\tR%d=R%d+R%d\n",$1,$1,$3); lib_reg($3);}
+|					expression '-' expression 			{gc("\tR%d=R%d-R%d\n",$1,$1,$3); lib_reg($3);}
 |					expression '*' expression 			{gc("\tR%d=R%d*R%d\n",$1,$1,$3); lib_reg($3);}
 |					expression '/' expression 			{gc("\tR%d=R%d/R%d\n",$1,$1,$3); lib_reg($3);}
 |					expression '^' expression 			// TODO crear función interna
@@ -279,7 +295,7 @@ functionCall: 		ID '(' paramsFunctionCallWrapper ')' {
 																		}else{
 																			puntero = puntero->param;
 																			while(puntero != NULL) {
-																				add(puntero->id, puntero->tipo, local, scope, puntero->array);
+																				add(puntero->id, puntero->tipo, local, scope, puntero->address, puntero->array);
 																				
 																				puntero = puntero->param;
 																			}

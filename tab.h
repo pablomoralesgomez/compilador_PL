@@ -9,11 +9,17 @@ struct nodo {
 	enum category categoria;
 	struct nodo *param;
     struct nodo *sig;
-    int array
+    int address;
+    struct array *array;
+};
+
+struct array {
+    int length;
+    int address;
 };
 
 struct nodo * search(char* id, enum category categoria);
-int add(char* id, enum type tipo, enum category categoria, int scope, int array);
+int add(char* id, enum type tipo, enum category categoria, int scope, int address, struct array*);
 void deleteScope(int sc);
 void removeTop();
 void show();
