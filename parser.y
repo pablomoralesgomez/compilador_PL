@@ -124,15 +124,10 @@ param:				typeVariable ID									{
 																		} else {
 																			struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
 																			
-																			if(param == NULL) {
-																				yyerror("El parametro no esta declarado en el header.");
-																			} else {
-																				if($1 != param->tipo) yyerror("El tipo del parametro no corresponde con el del header");	
-																				if(strcmp($2, param->id) != 0) yyerror("El nombre del parametro no corresponde con el del header");
-																			}
-																			
+																			if(param == NULL) yyerror("El parametro o la funcion no esta declarado en el header.");
+																			if($1 != param->tipo) yyerror("El tipo del parametro no corresponde con el del header");	
+																			if(strcmp($2, param->id) != 0) yyerror("El nombre del parametro no corresponde con el del header");	
 																		}
-																		printf("%s %d %d\n", functionName, functionNumberParam, checkingParamNumber);
 																	}
 |					typePrimitive '[' ']' ID;						/* TODO: AÑADIR ARRAYS A LA PILA */
 
@@ -157,21 +152,19 @@ functionWrapper: 	/* empty */
 /* already checked? */
 functiondcl: 		typeFunction ID {functionName = $2; functionNumberParam = countFunctionParameters($2);}'(' paramWrapper ')' '{'		{
 
-																																			struct nodo *puntero = search($2, funcion);;
-																																			if(puntero == NULL) {
-																																				yyerror("La funcion no esta declarada en el header");
-																																			} else {
-																																				if($1 != puntero->tipo) {
-																																					yyerror("El tipo de la funcion no corresponde con la del header");
-																																				} else {
-																																					puntero = puntero->param;
-																																					while(puntero != NULL) {
-																																						add(puntero->id, puntero->tipo, local, scope, puntero->array);
-																																						
-																																						puntero = puntero->param;
-																																					}
-																																				}
+																																			struct nodo *puntero = search($2, funcion);
+																																			
+																																			if(puntero == NULL) yyerror("La funcion no esta declarada en el header");
+																																			if($1 != puntero->tipo) yyerror("El tipo de la funcion no corresponde con la del header");
+																																	
+																																			puntero = puntero->param;
+																																			while(puntero != NULL) {
+																																				add(puntero->id, puntero->tipo, local, scope, puntero->array);
+																																				
+																																				puntero = puntero->param;
 																																			}
+																																				
+																																			
 																																			
 																																			functionNumberParam = -1;
 																																			functionName = "";
@@ -179,7 +172,7 @@ functiondcl: 		typeFunction ID {functionName = $2; functionNumberParam = countFu
 															
 										statementWrapper '}'					{deleteScope(scope);};
 
-main:           	INT MAIN '(' ')' '{' statementWrapper '}'					{deleteScope(scope); printf("%s\n", functionName);};
+main:           	INT MAIN '(' ')' '{' statementWrapper '}'					{deleteScope(scope);};
 
 
 
