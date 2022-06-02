@@ -285,11 +285,12 @@ variabledcl:	typePrimitive ID '=' expression ';' 	{adde($2, $1, (scope == 0) ? g
 
 /********* REGLAS DECLARACIÓN DE ARRAY *********/
 arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' {
+																		if ($3 < 0) yyerror("Una array no puede tener un número de elementos negativo");
 																		struct array *arr = malloc(sizeof(struct array));
 																		arr->length = $3;
 																		arr->address = getAddress($1, arr->length);
 																		adde($5, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), arr);
-																		} // FIXME números negativos
+																		}
 |					typePrimitive '[' ']' ID '=' ID ';' {
 																		struct nodo* puntero = find($6);
 																		if (puntero == NULL){
