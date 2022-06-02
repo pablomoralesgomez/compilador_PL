@@ -31,6 +31,8 @@ void yyerror(char*);
 void lib_reg(int reg);
 int assign_reg(int tipo);
 void gc(char* text);
+void adde(char*, enum type, enum category, int, int , struct array*);
+
 struct nodo * find(char* id);
 
 %}
@@ -115,7 +117,6 @@ struct nodo * find(char* id);
 program: 			header global functionArea 						{show();};
 
 
-// TODO Levantar error cuando los adds no funcionan
 /********* REGLAS DEL HEADER *********/
 header: 			/* empty */
 |					HEADER '{' headerWrapper '}';
@@ -123,7 +124,7 @@ header: 			/* empty */
 headerWrapper: 		/* empty */
 |					headerWrapper headerdcl;
 
-headerdcl: 			typeFunction ID {add($2, $1, funcion, 0, -1, NULL);} '(' paramWrapper ')' ';';
+headerdcl: 			typeFunction ID {adde($2, $1, funcion, 0, -1, NULL);} '(' paramWrapper ')' ';';
 
 paramWrapper: 		/* empty */
 |					paramWrapperRecursive  {
@@ -136,7 +137,7 @@ paramWrapperRecursive: {checkingParamNumber++;} param
 
 param:				typeVariable ID									{	
 																		if(functionName[0] == '\0') {
-																			add($2, $1, param, 0, getAddress($1, 1), NULL);
+																			adde($2, $1, param, 0, getAddress($1, 1), NULL);
 																		} else {
 																			struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
 																			
@@ -173,7 +174,7 @@ functiondcl: 		typeFunction ID {functionName = $2; functionNumberParam = countFu
 									
 											puntero = puntero->param;
 											while(puntero != NULL) {
-												add(puntero->id, puntero->tipo, local, scope, puntero->address, puntero->array); // FIXME cuando es array el tipo no es el del puntero, sino entero
+												adde(puntero->id, puntero->tipo, local, scope, puntero->address, puntero->array); // FIXME cuando es array el tipo no es el del puntero, sino entero
 												
 												puntero = puntero->param;
 											}
@@ -274,7 +275,7 @@ varAssign: 	ID '=' expression				{
 
 
 /********* REGLAS DECLARACIÓN DE VARIABLES *********/
-variabledcl:	typePrimitive ID '=' expression ';' 	{add($2, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), NULL);}
+variabledcl:	typePrimitive ID '=' expression ';' 	{adde($2, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), NULL);}
 |					STRING ID '=' expression ';'
 |					arraydcl;
 
@@ -289,7 +290,7 @@ arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' {
 																		struct array *arr = malloc(sizeof(struct array));
 																		arr->length = $3;
 																		arr->address = getAddress($1, arr->length);
-																		add($5, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), arr);
+																		adde($5, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), arr);
 																		} // FIXME números negativos
 |					typePrimitive '[' ']' ID '=' ID ';' {
 																		struct nodo* puntero = find($6);
@@ -302,13 +303,13 @@ arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' {
 																		if (puntero->array == 0){
 																			yyerror("La segunda ID no es una array");
 																		};
-																		add($4, $1, (scope == 0) ? global : local, scope, puntero->address, puntero->array);
+																		adde($4, $1, (scope == 0) ? global : local, scope, puntero->address, puntero->array);
 																		}
 |					typePrimitive '[' ']' ID '=' '{' arrayWrapper '}' ';' {
 																		struct array *arr = malloc(sizeof(struct array));
 																		arr->length = 0;		// FIXME array length
 																		arr->address = getAddress($1, arr->length);
-																		add($4, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), arr);
+																		adde($4, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), arr);
 																		};  // FIXME length, comprobar todos los tipos?
 
 arrayWrapper:	/* empty */
@@ -454,6 +455,12 @@ int assign_reg(int tipo){
 
 void lib_reg(int reg){
 	// TODO do
+}
+
+void adde(char* id, enum type tipo, enum category categoria, int scope, int address, struct array *array) {
+	if (add(id, tipo, categoria, scope, address, array) == false){
+		yyerror("Error al añadir a pila, la variable ya existe");
+	}
 }
 
 void yyerror(char* mens) {
