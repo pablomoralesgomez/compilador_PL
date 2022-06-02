@@ -166,23 +166,21 @@ functionWrapper: 	/* empty */
 
 /* ID can't be 'main' */
 /* already checked? */
-functiondcl: 		typeFunction ID '(' paramWrapper ')' '{'		{
-																		struct nodo *puntero = search($2, funcion);
-																		if(puntero == NULL) {
-																			yyerror("La funcion no esta declarada en el header");
-																		} else {
-																			if($1 != puntero->tipo) {
-																				yyerror("El tipo de la funcion no corresponde con la del header");
-																			} else {
-																				puntero = puntero->param;
-																				while(puntero != NULL) {
-																					add(puntero->id, puntero->tipo, local, scope, puntero->address, puntero->array); // FIXME cuando es array el tipo no es el del puntero, sino entero
-																					
-																					puntero = puntero->param;
-																				}
-																			}
-																		}
-																	}	
+functiondcl: 		typeFunction ID {functionName = $2; functionNumberParam = countFunctionParameters($2);} '(' paramWrapper ')' '{'		{
+											struct nodo *puntero = search($2, funcion);
+											if(puntero == NULL) yyerror("La funcion no esta declarada en el header");
+											if($1 != puntero->tipo) yyerror("El tipo de la funcion no corresponde con la del header");
+									
+											puntero = puntero->param;
+											while(puntero != NULL) {
+												add(puntero->id, puntero->tipo, local, scope, puntero->address, puntero->array); // FIXME cuando es array el tipo no es el del puntero, sino entero
+												
+												puntero = puntero->param;
+											}
+											
+											functionNumberParam = -1;
+											functionName = "";
+										}
 															
 										statementWrapper '}'					{deleteScope(scope);};
 

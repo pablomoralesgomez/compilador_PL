@@ -56,6 +56,7 @@ struct nodo * search(char* id, enum category categoria) {
 	return NULL;
 }
 
+
 int countFunctionParameters(char* id) {
 	
 	struct nodo *puntero = search(id, funcion);
@@ -98,7 +99,7 @@ int add(char* id, enum type tipo, enum category categoria, int scope, int addres
 	nuevo_simbolo->tipo = tipo;
 	nuevo_simbolo->categoria = categoria;
 	nuevo_simbolo->scope = scope;
-	nuevo_simbolo->address = 0;
+	nuevo_simbolo->address = address;
 	nuevo_simbolo->array = array;
 
 	
