@@ -89,7 +89,7 @@ struct nodo * getParameterByNumber(char *id, int n) {
 }
 
 
-int add(char* id, enum type tipo, enum category categoria, int scope, int address, struct array*) {
+int add(char* id, enum type tipo, enum category categoria, int scope, int address, struct array *array) {
 	
 	if(search(id, categoria) != NULL) return false;
 	
@@ -98,7 +98,7 @@ int add(char* id, enum type tipo, enum category categoria, int scope, int addres
 	nuevo_simbolo->tipo = tipo;
 	nuevo_simbolo->categoria = categoria;
 	nuevo_simbolo->scope = scope;
-	nuevo_simbolo->address = address;
+	nuevo_simbolo->address = 0;
 	nuevo_simbolo->array = array;
 
 	
@@ -116,6 +116,9 @@ int add(char* id, enum type tipo, enum category categoria, int scope, int addres
 	return true;
 }
 
+int getAddress(enum type tipo, int length){
+	return -2;
+}
 
 void show() {
 	

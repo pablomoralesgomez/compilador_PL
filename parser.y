@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "string.h"
 #include "tab.h"
 
 extern int numlin;
@@ -27,6 +28,10 @@ int functionNumberParam = -1;
 int checkingParamNumber = 0;
 
 void yyerror(char*);
+void lib_reg(int reg);
+int assign_reg(int tipo);
+void gc(char* text);
+struct nodo * find(char* id);
 
 %}
 /* SIMBOLOS TERMINALES */
@@ -88,7 +93,8 @@ void yyerror(char*);
 %token MAIN
 
 %type <int4>typeFunction typePrimitive typeVariable
-%type <expr> expression
+%type <expr> expression literals boolLiteral
+%type <registry> varAssign
 
 %start program
 
@@ -130,7 +136,7 @@ paramWrapperRecursive: {checkingParamNumber++;} param
 
 param:				typeVariable ID									{	
 																		if(functionName[0] == '\0') {
-																			add($2, $1, param, 0, -1, NULL);
+																			add($2, $1, param, 0, getAddress($1, 1), NULL);
 																		} else {
 																			struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
 																			
@@ -170,7 +176,7 @@ functiondcl: 		typeFunction ID '(' paramWrapper ')' '{'		{
 																			} else {
 																				puntero = puntero->param;
 																				while(puntero != NULL) {
-																					add(puntero->id, puntero->tipo, local, scope, getAddress(puntero->tipo, 1), puntero->array); // FIXME cuando es array el tipo no es el del puntero, sino entero
+																					add(puntero->id, puntero->tipo, local, scope, puntero->address, puntero->array); // FIXME cuando es array el tipo no es el del puntero, sino entero
 																					
 																					puntero = puntero->param;
 																				}
@@ -233,11 +239,36 @@ elseCond: 			/* empty */
 
 
 /********* REGLAS ASIGNACIONES *********/
-varAssign: 	ID '=' expression				{snprintf(line,lineSize,"\tI(R%d)=R%d\n",$1,$3);gc(line); lib_reg($3);lib_reg($1);lib_reg($$);}	//check type
-|					ID ASSIGN_ADD expression		{$$ = assign_reg(entero); snprintf(line,lineSize, "\tI(R%d)=R%d+R%d\n",$1,$$,$3);gc(line); lib_reg($3);lib_reg($1);lib_reg($$);}
-|					ID ASSIGN_SUBS expression	{$$ = assign_reg(entero); snprintf(line,lineSize, "\tI(R%d)=R%d-R%d\n",$1,$$,$3);gc(line); lib_reg($3);lib_reg($1);lib_reg($$);}
-|					ID ASSIGN_MULT expression	{$$ = assign_reg(entero); snprintf(line,lineSize, "\tI(R%d)=R%d*R%d\n",$1,$$,$3);gc(line); lib_reg($3);lib_reg($1);lib_reg($$);}
-|					ID ASSIGN_DIV expression		{$$ = assign_reg(entero); snprintf(line,lineSize, "\tI(R%d)=R%d/R%d\n",$1,$$,$3);gc(line); lib_reg($3);lib_reg($1);lib_reg($$);};
+varAssign: 	ID '=' expression				{
+																		struct nodo *puntero = find($1);
+																		snprintf(line,lineSize,"\tI(0x%05d)=R%d;\n",puntero->address,$3->reg);
+																		gc(line);
+																		lib_reg($3->reg);
+																		}
+|					ID ASSIGN_ADD expression	{
+																		struct nodo *puntero = find($1);
+																		snprintf(line,lineSize, "\tI(0x%05d)=R%d+I(0x%05d);\n",puntero->address,$3->reg,puntero->address);
+																		gc(line);
+																		lib_reg($3->reg);
+																		}
+|					ID ASSIGN_SUBS expression	{
+																		struct nodo *puntero = find($1);
+																		snprintf(line,lineSize, "\tI(0x%05d)=R%d-I(0x%05d);\n",puntero->address,$3->reg,puntero->address);
+																		gc(line);
+																		lib_reg($3->reg);
+																		}
+|					ID ASSIGN_MULT expression	{
+																		struct nodo *puntero = find($1);
+																		snprintf(line,lineSize, "\tI(0x%05d)=R%d*I(0x%05d);\n",puntero->address,$3->reg,puntero->address);
+																		gc(line);
+																		lib_reg($3->reg);
+																		}
+|					ID ASSIGN_DIV expression	{
+																		struct nodo *puntero = find($1);
+																		snprintf(line,lineSize, "\tI(0x%05d)=R%d/I(0x%05d);\n",puntero->address,$3->reg,puntero->address);
+																		gc(line);
+																		lib_reg($3->reg);
+																		};	// FIXME tipos
 //|					LIT_STRING 											// TODO arrays
 //|					arrays 											// TODO arrays
 
@@ -245,7 +276,7 @@ varAssign: 	ID '=' expression				{snprintf(line,lineSize,"\tI(R%d)=R%d\n",$1,$3)
 
 
 /********* REGLAS DECLARACIÓN DE VARIABLES *********/
-variabledcl:	typeVariable ID '=' expression ';' 	{add($2, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), NULL);}
+variabledcl:	typePrimitive ID '=' expression ';' 	{add($2, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), NULL);}
 |					STRING ID '=' expression ';'
 |					arraydcl;
 
@@ -257,32 +288,35 @@ variabledcl:	typeVariable ID '=' expression ';' 	{add($2, $1, (scope == 0) ? glo
 /********* REGLAS DECLARACIÓN DE ARRAY *********/
 // FIXME Comprobar si ID es $3
 arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' {
-																								struct array *arr = malloc(sizeof(struct arr));
-																								arr->length = $3;
-																								arr->address = getAddress($1, arr->length);
-																								add($5, $1, (scope == 0) ? global : local, scope, getAddress(entero, 1), arr);} // FIXME números negativos
+																		struct array *arr = malloc(sizeof(struct array));
+																		arr->length = $3;
+																		arr->address = getAddress($1, arr->length);
+																		add($5, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), arr);
+																		} // FIXME números negativos
 |					typePrimitive '[' ']' ID '=' ID ';' {
-																								struct nodo* puntero = find($6);
-																								if (puntero == NULL){
-																									yyerror("La segunda ID no está definida");
-																								};
-																								if($1 != puntero->tipo) {
-																									yyerror("El tipo de ambas ID no coincide");
-																								};
-																								if (puntero->array == 0){
-																									yyerror("La segunda ID no es una array");
-																								};
-																								add($4, $1, (scope == 0) ? global : local, scope, getAddress(entero), puntero->array);}
+																		struct nodo* puntero = find($6);
+																		if (puntero == NULL){
+																			yyerror("La segunda ID no está definida");
+																		};
+																		if($1 != puntero->tipo) {
+																			yyerror("El tipo de ambas ID no coincide");
+																		};
+																		if (puntero->array == 0){
+																			yyerror("La segunda ID no es una array");
+																		};
+																		add($4, $1, (scope == 0) ? global : local, scope, puntero->address, puntero->array);
+																		}
 |					typePrimitive '[' ']' ID '=' '{' arrayWrapper '}' ';' {
-																								struct array *arr = malloc(sizeof(struct arr));
-																								arr->length = $3;
-																								arr->address = getAddress($1, arr->length);
-																								add($4, $1, (scope == 0) ? global : local, scope, getAddress(entero, 1), arr);} ;  // FIXME length, comprobar todos los tipos?
+																		struct array *arr = malloc(sizeof(struct array));
+																		arr->length = 0;		// FIXME array length
+																		arr->address = getAddress($1, arr->length);
+																		add($4, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), arr);
+																		};  // FIXME length, comprobar todos los tipos?
 
 arrayWrapper:	/* empty */
 |					array;
 
-array:		expression											{$$ = $1;}
+array:		expression											
 |					array ',' expression;
 
 
@@ -292,12 +326,12 @@ array:		expression											{$$ = $1;}
 // FIXME string 
 /********* REGLAS EXPRESIONES *********/
 expression:	functionCall									{
-																					struct expr ex;
+																					struct reg_tipo *ex = malloc(sizeof(struct reg_tipo));
 																					ex->reg = -1;
 																					ex->tipo = -1;
 																					}
 |					ID '[' LIT_INT ']'							{
-																					struct expr ex;
+																					struct reg_tipo *ex = malloc(sizeof(struct reg_tipo));
 																					ex->reg = -1;
 																					ex->tipo = -1;
 																					}
@@ -305,47 +339,47 @@ expression:	functionCall									{
 																					struct nodo *puntero = find($1);
 																					int reg = assign_reg(entero);
 																					struct reg_tipo res = {puntero->tipo, reg};
-																					snprintf(line,lineSize, "\tR%d=I(%d)\n", reg, puntero->address);
+																					snprintf(line,lineSize, "\tR%d=I(%d);\n", reg, puntero->address);
 																					gc(line);
 																					$$ = &res;
 																					}
 |					literals												{$$ = $1;}
-|					NOT expression									{snprintf(line,lineSize, "\tR%d=!R%d\n",$2,$2);gc(line);}												// boolean
-|					'-' expression									{snprintf(line,lineSize, "\tR%d=0-R%d\n",$2,$2);gc(line);}											// numeros
-|					'(' expression ')'																																															// todos
-|					expression EQUALS expression		{snprintf(line,lineSize, "\tR%d=R%d==R%d\n",$1,$1,$3);	gc(line);lib_reg($3);}	// string char float int    float-int int-char
-|					expression NOT_EQ expression		{snprintf(line,lineSize, "\tR%d=R%d!=R%d\n",$1,$1,$3);	gc(line);lib_reg($3);}
-|					expression LESS_EQ expression		{snprintf(line,lineSize, "\tR%d=R%d<=R%d\n",$1,$1,$3);	gc(line);lib_reg($3);}
-|					expression BIGGER_EQ expression {snprintf(line,lineSize, "\tR%d=R%d>=R%d\n",$1,$1,$3);	gc(line);lib_reg($3);}
-|					expression '>' expression				{snprintf(line,lineSize, "\tR%d=R%d<R%d\n",$1,$1,$3);		gc(line);lib_reg($3);}
-|					expression '<' expression 			{snprintf(line,lineSize, "\tR%d=R%d<R%d\n",$1,$1,$3);		gc(line);lib_reg($3);}
-|					expression OR expression				{snprintf(line,lineSize, "\tR%d=R%d||R%d\n",$1,$1,$3);	gc(line);lib_reg($3);}
-|					expression AND expression 			{snprintf(line,lineSize, "\tR%d=R%d&&R%d\n",$1,$1,$3);	gc(line);lib_reg($3);}
-|					expression '+' expression 			{snprintf(line,lineSize, "\tR%d=R%d+R%d\n",$1,$1,$3);		gc(line);lib_reg($3);}
-|					expression '-' expression 			{snprintf(line,lineSize, "\tR%d=R%d-R%d\n",$1,$1,$3);		gc(line);lib_reg($3);}
-|					expression '*' expression 			{snprintf(line,lineSize, "\tR%d=R%d*R%d\n",$1,$1,$3);		gc(line);lib_reg($3);}
-|					expression '/' expression 			{snprintf(line,lineSize, "\tR%d=R%d/R%d\n",$1,$1,$3);		gc(line);lib_reg($3);}
+|					NOT expression									{snprintf(line,lineSize, "\tR%d=!R%d;\n",$2->reg,$2->reg);gc(line);}												// boolean
+|					'-' expression									{snprintf(line,lineSize, "\tR%d=0-R%d;\n",$2->reg,$2->reg);gc(line);}											// numeros
+|					'(' expression ')'							{$$ = $2;} // todos
+|					expression EQUALS expression		{snprintf(line,lineSize, "\tR%d=R%d==R%d;\n",$1->reg,$1->reg,$3->reg);	gc(line);lib_reg($3->reg);}	// string char float int    float-int int-char
+|					expression NOT_EQ expression		{snprintf(line,lineSize, "\tR%d=R%d!=R%d;\n",$1->reg,$1->reg,$3->reg);	gc(line);lib_reg($3->reg);}
+|					expression LESS_EQ expression		{snprintf(line,lineSize, "\tR%d=R%d<=R%d;\n",$1->reg,$1->reg,$3->reg);	gc(line);lib_reg($3->reg);}
+|					expression BIGGER_EQ expression {snprintf(line,lineSize, "\tR%d=R%d>=R%d;\n",$1->reg,$1->reg,$3->reg);	gc(line);lib_reg($3->reg);}
+|					expression '>' expression				{snprintf(line,lineSize, "\tR%d=R%d<R%d;\n"	,$1->reg,$1->reg,$3->reg);	gc(line);lib_reg($3->reg);}
+|					expression '<' expression 			{snprintf(line,lineSize, "\tR%d=R%d<R%d;\n"	,$1->reg,$1->reg,$3->reg);	gc(line);lib_reg($3->reg);}
+|					expression OR expression				{snprintf(line,lineSize, "\tR%d=R%d||R%d;\n",$1->reg,$1->reg,$3->reg);	gc(line);lib_reg($3->reg);}
+|					expression AND expression 			{snprintf(line,lineSize, "\tR%d=R%d&&R%d;\n",$1->reg,$1->reg,$3->reg);	gc(line);lib_reg($3->reg);}
+|					expression '+' expression 			{snprintf(line,lineSize, "\tR%d=R%d+R%d;\n"	,$1->reg,$1->reg,$3->reg);	gc(line);lib_reg($3->reg);}
+|					expression '-' expression 			{snprintf(line,lineSize, "\tR%d=R%d-R%d;\n"	,$1->reg,$1->reg,$3->reg);	gc(line);lib_reg($3->reg);}
+|					expression '*' expression 			{snprintf(line,lineSize, "\tR%d=R%d*R%d;\n"	,$1->reg,$1->reg,$3->reg);	gc(line);lib_reg($3->reg);}
+|					expression '/' expression 			{snprintf(line,lineSize, "\tR%d=R%d/R%d;\n"	,$1->reg,$1->reg,$3->reg);	gc(line);lib_reg($3->reg);}
 |					expression '^' expression 			// TODO crear función interna
 |					expression '%' expression; 			// TODO crear función interna
 
 literals: 			LIT_INT							{
 																		int reg = assign_reg(entero);
 																		struct reg_tipo res = {entero, reg};
-																		snprintf(line,lineSize, "\tR%d=%d\n",reg, $1);
+																		snprintf(line,lineSize, "\tR%d=%ld;\n",reg, $1);
 																		gc(line);
 																		$$ = &res;
 																		}
 |					LIT_FLOAT 								{
 																		int reg = assign_reg(comaFlotante);
 																		struct reg_tipo res = {comaFlotante, reg};
-																		snprintf(line,lineSize, "\tRR%d=%f\n",reg, $1);
+																		snprintf(line,lineSize, "\tRR%d=%f;\n",reg, $1);
 																		gc(line);
 																		$$ = &res;
 																		}
 |					LIT_CHAR 									{
 																		int reg = assign_reg(entero);
 																		struct reg_tipo res = {caracter, reg};
-																		snprintf(line,lineSize, "\tR%d=%d\n",reg, $1);
+																		snprintf(line,lineSize, "\tR%d=%d;\n",reg, $1);
 																		gc(line);
 																		$$ = &res;
 																		}
@@ -354,14 +388,14 @@ literals: 			LIT_INT							{
 boolLiteral:		TRUE								{
 																		int reg = assign_reg(entero);
 																		struct reg_tipo res = {boolean, reg};
-																		snprintf(line,lineSize, "\tR%d=1\n",reg);
+																		snprintf(line,lineSize, "\tR%d=1;\n",reg);
 																		gc(line);
 																		$$ = &res;
 																		}
 |					FALSE											{
 																		int reg = assign_reg(entero);
 																		struct reg_tipo res = {boolean, reg};
-																		snprintf(line,lineSize, "\tR%d=0\n",reg);
+																		snprintf(line,lineSize, "\tR%d=0;\n",reg);
 																		gc(line);
 																		$$ = &res;
 																		};
@@ -373,13 +407,6 @@ functionCall: 		ID '(' paramsFunctionCallWrapper ')' {
 																		struct nodo *puntero = search($1, funcion);
 																		if(puntero == NULL) {
 																			yyerror("La funcion no esta declarada en el header");
-																		}else{
-																			puntero = puntero->param;
-																			while(puntero != NULL) {
-																				add(puntero->id, puntero->tipo, local, scope, puntero->address, puntero->array);
-																				
-																				puntero = puntero->param;
-																			}
 																		}}; // search id y recoger parámetros, loopearlos en orden
 
 paramsFunctionCallWrapper: 	/* empty */	// linked list u otro stack vacío
@@ -422,7 +449,7 @@ struct nodo * find(char* id){
 }
 
 void gc(char* text){
-	printf(text); // TODO do
+	printf("%s\n",text); // TODO do
 }
 
 int assign_reg(int tipo){

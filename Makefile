@@ -11,4 +11,4 @@ lex.yy.c: milex.l parser.tab.h
 	flex milex.l
 
 parser.tab.c: parser.y tab.c tab.h
-	bison -d parser.y
+	bison -dv parser.y
