@@ -282,10 +282,8 @@ variabledcl:	typePrimitive ID '=' expression ';' 	{adde($2, $1, (scope == 0) ? g
 
 
 // TODO Pensar que hacer con los arrays en pila
-// TODO cambiar true por el número de elementos
 
 /********* REGLAS DECLARACIÓN DE ARRAY *********/
-// FIXME Comprobar si ID es $3
 arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' {
 																		struct array *arr = malloc(sizeof(struct array));
 																		arr->length = $3;
@@ -429,7 +427,6 @@ typeFunction: 		VOID			{$$ = vacio;}
 |					typePrimitive	{$$ = $1;};
 
 
-// TODO function to get address in stack
 %%
 
 struct nodo * find(char* id){
