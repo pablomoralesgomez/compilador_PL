@@ -27,6 +27,10 @@ char* functionName = "";
 int functionNumberParam = -1;
 int checkingParamNumber = 0;
 
+// Variables auxiliares para contar el número de parámetros de un array y sus tipos
+int longitud_array = 0;
+enum type tipo_array = -1;
+
 void yyerror(char*);
 void lib_reg(struct reg_tipo*);
 int assign_reg(int tipo);
@@ -306,18 +310,23 @@ arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' {
 																		};
 																		adde($4, $1, (scope == 0) ? global : local, scope, getAddress(entero,1), puntero->array);
 																		}
-|					typePrimitive '[' ']' ID '=' '{' arrayWrapper '}' ';' {
-																		struct array *arr = malloc(sizeof(struct array));
-																		arr->length = 0;		// FIXME array length
-																		arr->address = getAddress($1, arr->length);
-																		adde($4, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), arr);
-																		};  // FIXME length, comprobar todos los tipos?
+|					typePrimitive '[' ']' ID '=' '{' {tipo_array = $1;} arrayWrapper '}' ';' 	{
+																									struct array *arr = malloc(sizeof(struct array));
+																									arr->length = longitud_array;		
+																									arr->address = getAddress($1, arr->length);
+																									adde($4, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), arr);
+																									
+																									printf("length = %d\n", longitud_array);
+																									
+																									tipo_array = -1;
+																									longitud_array = 0;
+																								}; 
 
 arrayWrapper:	/* empty */
 |					array;
 
-array:		expression											
-|					array ',' expression;
+array:		{longitud_array++;} expression				{if($2->tipo != tipo_array) yyerror("El valor del elemento del array es de tipo distinto al declarado para el array.");}										
+|			array ',' {longitud_array++;} expression 	{if($4->tipo != tipo_array) yyerror("El valor del elemento del array es de tipo distinto al declarado para el array.");};
 
 
 // TODO string equals string
@@ -456,7 +465,7 @@ boolLiteral:		TRUE								{
 																		}
 |					FALSE											{
 																		int reg = assign_reg(entero);
-																		struct reg_tipo res = {boolean, reg};
+																		struct reg_tipo res = {reg, boolean};
 																		snprintf(line,lineSize, "\tR%d=0;\n",reg);
 																		gc(line);
 																		$$ = &res;
@@ -465,17 +474,33 @@ boolLiteral:		TRUE								{
 /* TODO: Hacer comprobaciones a la hora de llamar a la funcion: id correcta, num param, etc */
 
 /********* REGLAS LLAMADA A UNA FUNCION*********/
-functionCall: 		ID '(' paramsFunctionCallWrapper ')' {
-																		struct nodo *puntero = search($1, funcion);
-																		if(puntero == NULL) {
-																			yyerror("La funcion no esta declarada en el header");
-																		}}; // search id y recoger parámetros, loopearlos en orden
+functionCall: 		ID {functionName = $1; functionNumberParam = countFunctionParameters($1);}'(' paramsFunctionCallWrapper ')' 	{
+																																		struct nodo *puntero = search($1, funcion);
+																																		if(puntero == NULL) {
+																																			yyerror("La funcion no esta declarada en el header");
+																																		}
+																																		
+																																		functionNumberParam = -1;
+																																		functionName = "";
+																																		
+																																	};		// search id y recoger parámetros, loopearlos en orden
 
-paramsFunctionCallWrapper: 	/* empty */	// linked list u otro stack vacío
-|					paramsFunctionCall;
+paramsFunctionCallWrapper: 	/* empty */																										// linked list u otro stack vacío
+|					paramsFunctionCall {
+											if(checkingParamNumber < functionNumberParam) yyerror("El numero de parametros es menor que en el header.");
+											checkingParamNumber = 0;
+										};
 
-paramsFunctionCall: paramsFunctionCall ',' expression // stackear parámetros
-|					expression;	// linked list u otro stack
+paramsFunctionCall: paramsFunctionCall ',' {checkingParamNumber++;} expression 		{	
+																						struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
+																						if(param == NULL) yyerror("El numero de parametros no se corresponde con el especificado en el header.");
+																						if($4->tipo != param->tipo) yyerror("El tipo del parametro no corresponde con el del header");	
+																					}														// stackear parámetros
+|	{checkingParamNumber++;} expression 											{	
+																						struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
+																						if(param == NULL) yyerror("El numero de parametros no se corresponde con el especificado en el header.");
+																						if($2->tipo != param->tipo) yyerror("El tipo del parametro no corresponde con el del header");	
+																					};																					// linked list u otro stack
 
 
 
