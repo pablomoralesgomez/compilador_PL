@@ -562,6 +562,7 @@ struct reg_tipo * igualdades(struct reg_tipo* izq, struct reg_tipo* der, int equ
 	if (equals){
 		op[0] = '=';
 	}
+	struct reg_tipo* res;
 	if (izq->tipo == caracter && der->tipo == caracter ||
 			izq->tipo == entero && der->tipo == entero ||
 			izq->tipo == entero && der->tipo == caracter ||
@@ -569,19 +570,23 @@ struct reg_tipo * igualdades(struct reg_tipo* izq, struct reg_tipo* der, int equ
 			izq->tipo == boolean && der->tipo == boolean){
 		snprintf(line,lineSize, "\tR%d=R%d%sR%d;\n",izq->reg,izq->reg,op,der->reg);
 		lib_reg(der);
+		res = izq;
 	}else if(izq->tipo == comaFlotante && der->tipo == comaFlotante){
-		snprintf(line,lineSize, "\tRR%d=RR%d%sRR%d;\n",izq->reg,izq->reg,op,der->reg);
+		snprintf(line,lineSize, "\tR%d=RR%d%sRR%d;\n",izq->reg,izq->reg,op,der->reg);
 		lib_reg(der);
+		res = izq;
 	}else if(izq->tipo == comaFlotante && der->tipo == entero){
-		snprintf(line,lineSize, "\tRR%d=RR%d%sR%d;\n",izq->reg,izq->reg,op,der->reg);
-		lib_reg(der);
-	}else if(izq->tipo == entero && der->tipo == comaFlotante){
-		snprintf(line,lineSize, "\tRR%d=R%d%sRR%d;\n",der->reg,izq->reg,op,der->reg);
+		snprintf(line,lineSize, "\tR%d=RR%d%sR%d;\n",der->reg,izq->reg,op,der->reg);
 		lib_reg(izq);
+		res = der;
+	}else if(izq->tipo == entero && der->tipo == comaFlotante){
+		snprintf(line,lineSize, "\tR%d=R%d%sRR%d;\n",izq->reg,izq->reg,op,der->reg);
+		lib_reg(der);
+		res = izq;
 	}else{
 		yyerror("Fallo en igualdad, asegúrese de que usa tipos correctos");
 	}
-	izq->tipo = boolean;
+	res->tipo = boolean;
 	gc(line);
-	return izq;
+	return res;
 }
