@@ -15,6 +15,7 @@ int lineSize;
 #define true 1
 #define false 0
 
+enum igualdad{igual, no_igual, mayor, mayor_igual, menor, menor_igual};
 
 // Struct auxiliar para tratar con valores en la zona de expression
 struct reg_tipo{
@@ -37,7 +38,7 @@ int assign_reg(int tipo);
 void gc(char* text);
 
 void adde(char*, enum type, enum category, int, int , struct array*);
-struct reg_tipo * igualdades(struct reg_tipo*, struct reg_tipo*, int);
+struct reg_tipo * igualdades(struct reg_tipo*, struct reg_tipo*, enum igualdad_than);
 
 struct nodo * find(char* id);
 
@@ -375,30 +376,22 @@ expression:	functionCall									{
 																					}											// numeros
 |					'(' expression ')'							{$$ = $2;} // todos
 |					expression EQUALS expression		{
-																					$$ = igualdades($1, $3, true);
+																					$$ = igualdades($1, $3, igual);
 																					}
 |					expression NOT_EQ expression		{
-																					$$ = igualdades($1, $3, false);
+																					$$ = igualdades($1, $3, no_igual);
 																					}
 |					expression LESS_EQ expression		{
-																					snprintf(line,lineSize, "\tR%d=R%d<=R%d;\n",$1->reg,$1->reg,$3->reg);
-																					gc(line);
-																					lib_reg($3);
+																					$$ = igualdades($1, $3, menor_igual);
 																					}
 |					expression BIGGER_EQ expression {
-																					snprintf(line,lineSize, "\tR%d=R%d>=R%d;\n",$1->reg,$1->reg,$3->reg);
-																					gc(line);
-																					lib_reg($3);
+																					$$ = igualdades($1, $3, mayor_igual);
 																					}
 |					expression '>' expression				{
-																					snprintf(line,lineSize, "\tR%d=R%d<R%d;\n"	,$1->reg,$1->reg,$3->reg);
-																					gc(line);
-																					lib_reg($3);
+																					$$ = igualdades($1, $3, menor);
 																					}
 |					expression '<' expression 			{
-																					snprintf(line,lineSize, "\tR%d=R%d<R%d;\n"	,$1->reg,$1->reg,$3->reg);
-																					gc(line);
-																					lib_reg($3);
+																					$$ = igualdades($1, $3, menor);
 																					}
 |					expression OR expression				{
 																					snprintf(line,lineSize, "\tR%d=R%d||R%d;\n",$1->reg,$1->reg,$3->reg);
@@ -582,11 +575,31 @@ int main(int argc, char** argv) {
 
 // Funciones auxiliares
 
-struct reg_tipo * igualdades(struct reg_tipo* izq, struct reg_tipo* der, int equals){
-	char op[2]= "!=";
-	if (equals){
-		op[0] = '=';
+struct reg_tipo * igualdades(struct reg_tipo* izq, struct reg_tipo* der, enum igualdad equals){
+	char op[2];
+	if (equals == igual){
+		strncpy(op, "==",sizeof(op));
+	}else if (equals == no_igual){
+		strncpy(op, "!=",sizeof(op));
+	}else{
+		if (izq->tipo == boolean && der->tipo == boolean){
+			yyerror("Fallo en igualdad, asegúrese de que usa tipos correctos");
+		}
 	}
+
+
+	if (equals == mayor){
+		strncpy(op, ">",sizeof(op));
+	}else if (equals == mayor_igual){
+		strncpy(op, ">=",sizeof(op));
+	}else if (equals == menor){
+		strncpy(op, "<",sizeof(op));
+	}else if (equals == menor_igual){
+		strncpy(op, "<=",sizeof(op));
+	}else{
+		yyerror("Error de compilador");
+	}
+
 	struct reg_tipo* res;
 	if (izq->tipo == caracter && der->tipo == caracter ||
 			izq->tipo == entero && der->tipo == entero ||
