@@ -1,8 +1,11 @@
 %{
 
-#include <stdio.h>
 #include <stdlib.h>
-#include "string.h"
+#include <stdio.h>
+
+#include <stdlib.h>
+#include <string.h>
+
 #include "tab.h"
 
 extern int numlin;
@@ -34,6 +37,19 @@ void gc(char* text);
 void adde(char*, enum type, enum category, int, int , struct array*);
 
 struct nodo * find(char* id);
+
+// Struct auxiliar para tratar con valores en la zona de expression
+struct reg_tipo{
+	int reg;
+	int tipo;
+};
+
+// Variables auxiliares para comprobar los parámetros de las funciones
+char* functionName = "";
+int functionNumberParam = -1;
+int checkingParamNumber = 0;
+
+int quevengo = 0;
 
 %}
 /* SIMBOLOS TERMINALES */
@@ -86,6 +102,7 @@ struct nodo * find(char* id);
 	long int4;
 	float fl;
 	char ch;
+
 	int registry;
 	int direction;
 	struct reg_tipo * expr;
@@ -97,6 +114,7 @@ struct nodo * find(char* id);
 %type <int4>typeFunction typePrimitive typeVariable
 %type <expr> expression literals boolLiteral
 %type <registry> varAssign
+
 
 %start program
 
@@ -138,6 +156,7 @@ paramWrapperRecursive: {checkingParamNumber++;} param
 param:				typeVariable ID									{	
 																		if(functionName[0] == '\0') {
 																			adde($2, $1, param, 0, getAddress($1, 1), NULL);
+
 																		} else {
 																			struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
 																			
@@ -167,6 +186,7 @@ functionWrapper: 	/* empty */
 
 /* ID can't be 'main' */
 /* already checked? */
+
 functiondcl: 		typeFunction ID {functionName = $2; functionNumberParam = countFunctionParameters($2);} '(' paramWrapper ')' '{'		{
 											struct nodo *puntero = search($2, funcion);
 											if(puntero == NULL) yyerror("La funcion no esta declarada en el header");
@@ -182,6 +202,7 @@ functiondcl: 		typeFunction ID {functionName = $2; functionNumberParam = countFu
 											functionNumberParam = -1;
 											functionName = "";
 										}
+
 															
 										statementWrapper '}'					{deleteScope(scope);};
 
@@ -284,6 +305,8 @@ variabledcl:	typePrimitive ID '=' expression ';' 	{adde($2, $1, (scope == 0) ? g
 // TODO Pensar que hacer con los arrays en pila
 
 /********* REGLAS DECLARACIÓN DE ARRAY *********/
+
+// FIXME Comprobar si ID es $3
 arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' {
 																		if ($3 < 0) yyerror("Una array no puede tener un número de elementos negativo");
 																		struct array *arr = malloc(sizeof(struct array));
@@ -311,6 +334,7 @@ arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' {
 																		adde($4, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), arr);
 																		};  // FIXME length, comprobar todos los tipos?
 
+
 arrayWrapper:	/* empty */
 |					array;
 
@@ -323,6 +347,7 @@ array:		expression
 // FIXME diferenciar tipos y validar si se puede hacer la función
 // FIXME string 
 /********* REGLAS EXPRESIONES *********/
+
 expression:	functionCall									{
 																					struct reg_tipo *ex = malloc(sizeof(struct reg_tipo));
 																					ex->reg = -1;
@@ -401,6 +426,7 @@ boolLiteral:		TRUE								{
 /* TODO: Hacer comprobaciones a la hora de llamar a la funcion: id correcta, num param, etc */
 
 /********* REGLAS LLAMADA A UNA FUNCION*********/
+
 functionCall: 		ID '(' paramsFunctionCallWrapper ')' {
 																		struct nodo *puntero = search($1, funcion);
 																		if(puntero == NULL) {
@@ -410,8 +436,8 @@ functionCall: 		ID '(' paramsFunctionCallWrapper ')' {
 paramsFunctionCallWrapper: 	/* empty */	// linked list u otro stack vacío
 |					paramsFunctionCall;
 
-paramsFunctionCall: paramsFunctionCall ',' expression // stackear parámetros
-|					expression;	// linked list u otro stack
+paramsFunctionCall: paramsFunctionCall ',' expression 				// stackear parámetros
+|					expression;										// linked list u otro stack
 
 
 
