@@ -17,4 +17,8 @@ global{
 int main() {
 	boolean test = true;
 	boolean d = test != true;
+	x = x + x;
+	x = x - x;
+	x = x * x;
+	x = x / x;
 }
