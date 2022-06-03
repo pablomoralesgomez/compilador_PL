@@ -90,7 +90,6 @@ struct nodo * getParameterByNumber(char *id, int n) {
 }
 
 
-
 int add(char* id, enum type tipo, enum category categoria, int scope, int address, struct array *array) {
 	
 	if(search(id, categoria) != NULL) return false;
@@ -147,23 +146,3 @@ void show() {
 	
 	printf("-- Fin Tabla Simbolos --\n\n");
 }
-
-/*
-int main() {
-	
-	
-	add("x", entero, global, 0);
-	
-	add("x123", entero, funcion, 0);
-	
-	add("uno", entero, param, 0);
-	
-	add("dos", entero, param, 0);
-	
-	add("tres", entero, param, 0);
-	
-	deleteScope(1);
-	
-	show();
-	
-}*/
