@@ -601,9 +601,12 @@ struct reg_tipo * igualdades(struct reg_tipo* izq, struct reg_tipo* der, enum op
 		lib_reg(der);
 		res = izq;
 	}else if(izq->tipo == comaFlotante && der->tipo == comaFlotante){
-		snprintf(line,lineSize, "\tR%d=RR%d%sRR%d;\n",izq->reg,izq->reg,op,der->reg); // FIXME get register
+		int reg = assign_reg(entero);
+		snprintf(line,lineSize, "\tR%d=RR%d%sRR%d;\n",reg ,izq->reg,op,der->reg); // FIXME get register
 		lib_reg(der);
-		res = izq;
+		lib_reg(izq);
+		struct reg_tipo aux = {reg ,boolean};
+		res = &aux;
 	}else if(izq->tipo == comaFlotante && der->tipo == entero){
 		snprintf(line,lineSize, "\tR%d=RR%d%sR%d;\n",der->reg,izq->reg,op,der->reg);
 		lib_reg(izq);
