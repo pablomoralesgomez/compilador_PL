@@ -24,9 +24,13 @@ enum op_logicos{and, or};
 enum op_aritmeticas{sum, sub, mul, divi};
 enum op_asignaciones{aigual, asum, asub, amul, adivi};
 
+int tagCount = 1;
+int br = 0;
+int co = 0;
+int fi = 0;
 
-int int_regs[1   +100];
-int float_regs[1 +100];
+int int_regs[1   +5];
+int float_regs[1 +3];
 
 // Struct auxiliar para tratar con valores en la zona de expression
 struct reg_tipo{
@@ -56,6 +60,7 @@ struct reg_tipo * igualdades(struct reg_tipo*, struct reg_tipo*, enum op_igualda
 struct reg_tipo * logicos(struct reg_tipo*, struct reg_tipo*, enum op_logicos);
 struct reg_tipo * aritmeticas(struct reg_tipo*, struct reg_tipo*, enum op_aritmeticas);
 int asignaciones(struct reg_tipo*, char*, enum op_asignaciones);
+int getTag();
 
 struct nodo * find(char* id);
 
@@ -111,9 +116,9 @@ struct nodo * find(char* id);
 	long int4;
 	float fl;
 	char ch;
-	int registry;
 	struct reg_tipo * expr;
 	int tip;
+	int int1;
 }
 
 %token <str>ID
@@ -121,7 +126,6 @@ struct nodo * find(char* id);
 
 %type <tip>typeFunction typePrimitive typeVariable
 %type <expr> expression literals boolLiteral functionCall
-%type <registry> varAssign
 
 %start program
 
@@ -180,15 +184,15 @@ global:				/* empty */
 |					GLOBAL '{' {scope = 0;} globalWrapper  '}' 		{scope = 0;};
 
 globalWrapper:		/* empty */
-|					globalWrapper variabledcl ;
+|					globalWrapper variabledcl;
 
 
 
 /********* REGLAS ZONA DE DECLARACIÓN DE FUNCIONES *********/
 functionArea: 		functionWrapper main functionWrapper;
 
-functionWrapper: 	/* empty */
-|					functionWrapper functiondcl;
+functionWrapper: 	/* empty */					{br = 0; co = 0;}
+|					functionWrapper functiondcl {br = 0; co = 0;};
 
 /* ID can't be 'main' */
 /* already checked? */
@@ -224,9 +228,23 @@ statement: 			loop
 |					variabledcl
 |					functionCall ';'
 |					varAssign ';'
-|					BREAK ';'
+|					BREAK ';'			{
+												if (br){
+													snprintf(line,lineSize, "\tGT(%d) //break- l:%d\n", br,numlin);
+													gc(line);
+												}else{
+													yyerror("Break fuera de bucle");
+												}
+												}
 |					PRINT '(' printeableThings ')' ';'
-|					CONTINUE ';'
+|					CONTINUE ';'	{
+												if (co){
+													snprintf(line,lineSize, "\tGT(%d) //continue - l:%d\n", co,numlin);
+													gc(line);
+												}else{
+													yyerror("Continue fuera de bucle");
+												}
+												}
 |					RETURN expression ';';	// FIXME free reg_tipo
 /* returnExpression */
 
@@ -238,28 +256,126 @@ printeableThings:	expression	// FIXME free reg_tipo
 /********* REGLAS DECLARACIÓN DE BUCLES *********/
 loop: 				forLoop
 |					whileLoop
-|					DO whileLoop;
-
-forLoop: 			FOR '(' forStatement ')' '{' statementWrapper '}'			{deleteScope(scope);};
+|					DO whileLoop;		// FIXME
 
 /* HACK variabledcl already has ';' */
-/* boolExpression */
-forStatement: 		{scope++;} variabledcl {scope--;} expression ';'  varAssign; // FIXME free reg_tipo
+forLoop: 	{$<int1>$ = co;}//1 								//Store previous continue tag
+					{$<int1>$ = br;}//2 								//Store previous break tag
+					{co = getTag(); $<int1>$ = co;}//3	//Store current continue tag
+					{br = getTag(); $<int1>$ = br;}//4	//Store current break tag
+					//5		6			7					8						9
+					FOR '(' {scope++;} variabledcl {scope--;}
+					{
+					snprintf(line,lineSize, "L %d: //for con - l:%d\n", $<int1>3,numlin);
+					gc(line);
+					}// 10
+					// 11				12
+					expression ';'
+					{
+					if ($11->tipo != boolean){
+						yyerror("La expresión del bucle no es booleana");
+					}
+					snprintf(line,lineSize, "\tIF (!R%d) GT(%d); //for bool - l:%d\n",$11->reg, $<int1>4,numlin);
+					gc(line);
+					lib_reg($11);
+					}//13
+					//14			15	16					17
+					varAssign ')' '{' statementWrapper '}'
+					{
+					co = $<int1>1;	// Retrieve previous continue tag
+					br = $<int1>2;	// Retrieve previous break tag
+					snprintf(line,lineSize, "L %d: //for bre - l:%d\n", $<int1>4,numlin);
+					gc(line);
+					
+					deleteScope(scope);
+					};
 
-/* boolExpression */
-whileLoop: 			WHILE '(' expression ')' '{' statementWrapper '}'			{deleteScope(scope);};	// FIXME free reg_tipo
+whileLoop: 	{$<int1>$ = co;}//1 									//Store previous continue tag
+						{$<int1>$ = br;}//2 									//Store previous break tag
+						{co = getTag(); $<int1>$ = co;}//3		//Store current continue tag
+						{br = getTag(); $<int1>$ = br;}//4		//Store current break tag
+						{
+						snprintf(line,lineSize, "L %d: //while con - l:%d\n", $<int1>3,numlin);
+						gc(line);
+						}//5
+						//6			7			8				9
+						WHILE '(' expression ')'
+						{
+						if ($8->tipo != boolean){
+							yyerror("La expresión del bucle no es booleana");
+						}
+						snprintf(line,lineSize, "\tIF (!R%d) GT(%d); //while bool - l:%d\n",$8->reg, $<int1>4,numlin);
+						gc(line);
+						lib_reg($8);
+						}
+						'{' statementWrapper '}'
+						{
+						co = $<int1>1;	// Retrieve previous continue tag
+						br = $<int1>2;	// Retrieve previous break tag
+						snprintf(line,lineSize, "L %d: // while bre - l:%d\n", $<int1>4,numlin);
+						gc(line);
+						deleteScope(scope);
+						};
 
 
 
 /********* REGLAS DECLARACIÓN DE CONDICIONALES*********/
-conditional: 		ifCond elifCond elseCond;
+conditional: 	{$<int1>$ = fi;}//1 								//Store previous if tag
+							{fi = getTag(); $<int1>$ = fi;}//2	//Store current if tag
+							{snprintf(line,lineSize, "//if start - l:%d\n",numlin);gc(line);}
 
-/* boolExpression */
-ifCond: 			IF '(' expression ')'  '{' statementWrapper '}'				{deleteScope(scope);}; // FIXME free reg_tipo
+							ifCond elifCond elseCond
+							
+							{
+							fi = $<int1>1;	// Retrieve previous if tag
+							snprintf(line,lineSize, "L %d: //if exit - l:%d\n", $<int1>2,numlin);
+							gc(line);
+							};
 
-/* boolExpression */
+
+ifCond: 			{$<int1>$ = getTag();}	// if not
+							IF '(' expression ')' {
+							if ($4->tipo != boolean){
+								yyerror("La expresión del if no es booleana");
+							}
+							snprintf(line,lineSize, "\tIF (!R%d) GT(%d); //if bool - l:%d\n",$4->reg, $<int1>1,numlin);
+							gc(line);
+							lib_reg($4);
+							}
+							'{' statementWrapper 
+							{
+							snprintf(line,lineSize, "\tGT(%d); //exit if - l:%d\n",fi,numlin);
+							gc(line);
+							}
+							'}'
+							{
+							snprintf(line,lineSize, "L %d: //if not - l:%d\n", $<int1>1,numlin);
+							gc(line);
+							deleteScope(scope);
+							};
+
 elifCond: 			/* empty */
-|					elifCond ELIF '(' expression ')'  '{' statementWrapper '}'	{deleteScope(scope);}; // FIXME free reg_tipo
+|					elifCond 
+					{$<int1>$ = getTag();}	// if not
+					ELIF '(' expression ')' {
+					if ($5->tipo != boolean){
+						yyerror("La expresión del if no es booleana");
+					}
+					snprintf(line,lineSize, "\tIF (!R%d) GT(%d);//elif bool - l:%d\n",$5->reg, $<int1>2,numlin);
+					gc(line);
+					lib_reg($5);
+					}
+					'{' statementWrapper
+					{
+					snprintf(line,lineSize, "\tGT(%d); //exit elif - l:%d\n",fi,numlin);
+					gc(line);
+					}
+					'}'
+					{
+					snprintf(line,lineSize, "L %d: //elif not - l:%d\n", $<int1>2,numlin);
+					gc(line);
+					deleteScope(scope);
+					};
 
 elseCond: 			/* empty */
 |					ELSE '{' statementWrapper '}'								{deleteScope(scope);};
@@ -301,7 +417,7 @@ variabledcl:	typePrimitive ID '=' expression ';' 	{												/*adde($2, $1, (s
 																										snprintf(line, lineSize, "\tI(R6 - %d) = R%d\n", 4 * r7Displacement, $4->reg);
 																										gc(line);
 																										
-																										free($4);
+																										lib_reg($4);
 																										}
 |					STRING ID '=' LIT_STRING ';'
 |					arraydcl;
@@ -583,6 +699,12 @@ struct nodo * find(char* id){
 		}
 	}
 	return puntero;
+}
+
+int getTag(){
+	int res = tagCount;
+	tagCount = tagCount + 1;
+	return res;
 }
 
 void gc(char* text){

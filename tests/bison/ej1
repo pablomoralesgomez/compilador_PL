@@ -12,6 +12,7 @@ global{
 	char c = ' ';
 	String a = "hola";
 	String b = "halo";
+	int b = 2;
 }
 	
 int main() {
@@ -26,8 +27,41 @@ int main() {
 	#x = x * x;
 	#x = x / x;
 
-	x += x;
-	x += df;
-	df += x;
-	df += df;
+	#x += x;
+	#x += df;
+	#df += x;
+	#df += df;
+	int a = 1;
+	if (true){
+		if (true){
+			a = 2;
+
+		}else{
+			int j = 1;
+
+		}
+
+	}elif (true){
+		b = 2;
+
+	}else{
+		c = 3;
+
+	}
+	int z = 1;
+	int i = 1;
+	int j = 1;
+	while(i<3){
+		while(j<3){
+			if (true){
+				a = 2;
+				
+			}
+			continue;
+			while(z<3){
+				int w = 1;
+			}
+			break;
+		}
+	}
 }
