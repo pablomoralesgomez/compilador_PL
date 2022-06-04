@@ -29,8 +29,8 @@ int br = 0;
 int co = 0;
 int fi = 0;
 
-int int_regs[1   +100];
-int float_regs[1 +100];
+int int_regs[1   +5];
+int float_regs[1 +3];
 
 // Struct auxiliar para tratar con valores en la zona de expression
 struct reg_tipo{
@@ -349,7 +349,7 @@ ifCond: 			{$<int1>$ = getTag();}	// if not
 							snprintf(line,lineSize, "L %d: //if not - l:%d\n", $<int1>1,numlin);
 							gc(line);
 							deleteScope(scope);
-							}; // FIXME free reg_tipo
+							};
 
 elifCond: 			/* empty */
 |					elifCond 
@@ -372,7 +372,7 @@ elifCond: 			/* empty */
 					snprintf(line,lineSize, "L %d: //elif not - l:%d\n", $<int1>2,numlin);
 					gc(line);
 					deleteScope(scope);
-					}; // FIXME free reg_tipo
+					};
 
 elseCond: 			/* empty */
 |					ELSE '{' statementWrapper '}'								{deleteScope(scope);};
@@ -405,7 +405,8 @@ varAssign: 	ID '=' expression				{
 variabledcl:	typePrimitive ID '=' expression ';' 	{
 																										adde($2, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), NULL);
 																										snprintf(line,lineSize, "\t//ID initialization: %s - l:%d\n",$2, numlin);
-																										gc(line);// FIXME free reg_tipo
+																										gc(line);
+																										lib_reg($4);
 																										}
 |					STRING ID '=' LIT_STRING ';'
 |					arraydcl;
