@@ -226,7 +226,7 @@ statement: 			loop
 |					varAssign ';'
 |					BREAK ';'			{
 												if (br){
-													snprintf(line,lineSize, "\t GT(%d) //break- l:%d\n", br,numlin);
+													snprintf(line,lineSize, "\tGT(%d) //break- l:%d\n", br,numlin);
 													gc(line);
 												}else{
 													yyerror("Break fuera de bucle");
@@ -235,7 +235,7 @@ statement: 			loop
 |					PRINT '(' printeableThings ')' ';'
 |					CONTINUE ';'	{
 												if (co){
-													snprintf(line,lineSize, "\t GT(%d) //continue - l:%d\n", co,numlin);
+													snprintf(line,lineSize, "\tGT(%d) //continue - l:%d\n", co,numlin);
 													gc(line);
 												}else{
 													yyerror("Continue fuera de bucle");
@@ -286,15 +286,32 @@ forLoop: 	{$<int1>$ = co;}//1 								//Store previous continue tag
 					deleteScope(scope);
 					};
 
-whileLoop: 	{br = getTag(); $<int1>$ = br;} {co = getTag();  $<int1>$ = co;}
-					WHILE '(' expression ')' '{' statementWrapper '}'
-					{
-					
-					if ($5->tipo != boolean){
-						yyerror("La expresión del bucle no es booleana");
-					}
-					deleteScope(scope);
-					};	// FIXME free reg_tipo
+whileLoop: 	{$<int1>$ = co;}//1 									//Store previous continue tag
+						{$<int1>$ = br;}//2 									//Store previous break tag
+						{co = getTag(); $<int1>$ = co;}//3		//Store current continue tag
+						{br = getTag(); $<int1>$ = br;}//4		//Store current break tag
+						{
+						snprintf(line,lineSize, "L %d: //while con - l:%d\n", $<int1>3,numlin);
+						gc(line);
+						}//5
+						//6			7			8				9
+						WHILE '(' expression ')'
+						{
+						if ($8->tipo != boolean){
+							yyerror("La expresión del bucle no es booleana");
+						}
+						snprintf(line,lineSize, "\tIF (!R%d) GT(%d);//while bool - l:%d\n",$8->reg, $<int1>4,numlin);
+						gc(line);
+						lib_reg($8);
+						}
+						'{' statementWrapper '}'
+						{
+						co = $<int1>1;	// Retrieve previous continue tag
+						br = $<int1>2;	// Retrieve previous break tag
+						snprintf(line,lineSize, "L %d: //while bre - l:%d\n", $<int1>4,numlin);
+						gc(line);
+						deleteScope(scope);
+						};	// FIXME free reg_tipo
 
 
 
