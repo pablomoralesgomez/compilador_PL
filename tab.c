@@ -33,9 +33,9 @@ void removeTop() {
 			primero->param = aux;
 		}
 	}
-	
+
+	if (primero->array != NULL) free(primero->array);
 	struct nodo *sig = primero->sig;
-	
 	free(primero);
 	primero = sig;
 }

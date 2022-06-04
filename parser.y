@@ -10,6 +10,9 @@ extern int numlin;
 extern int scope;
 extern FILE *yyin;
 
+FILE *outQ;
+char *fName = "out.q.c";
+
 char *line;
 int lineSize;
 
@@ -19,6 +22,11 @@ int lineSize;
 enum op_igualdades{igual, no_igual, mayor, mayor_igual, menor, menor_igual};
 enum op_logicos{and, or};
 enum op_aritmeticas{sum, sub, mul, divi};
+enum op_asignaciones{aigual, asum, asub, amul, adivi};
+
+
+int int_regs[1   +100];
+int float_regs[1 +100];
 
 // Struct auxiliar para tratar con valores en la zona de expression
 struct reg_tipo{
@@ -44,6 +52,7 @@ void adde(char*, enum type, enum category, int, int , struct array*);
 struct reg_tipo * igualdades(struct reg_tipo*, struct reg_tipo*, enum op_igualdades);
 struct reg_tipo * logicos(struct reg_tipo*, struct reg_tipo*, enum op_logicos);
 struct reg_tipo * aritmeticas(struct reg_tipo*, struct reg_tipo*, enum op_aritmeticas);
+int asignaciones(struct reg_tipo*, char*, enum op_asignaciones);
 
 struct nodo * find(char* id);
 
@@ -127,7 +136,7 @@ struct nodo * find(char* id);
 
 %%	/********* REGLAS GRAMATICALES *********/
 
-program: 			header global functionArea 						{show();};
+program: 			header global functionArea
 
 
 /********* REGLAS DEL HEADER *********/
@@ -215,11 +224,11 @@ statement: 			loop
 |					BREAK ';'
 |					PRINT '(' printeableThings ')' ';'
 |					CONTINUE ';'
-|					RETURN expression ';';
+|					RETURN expression ';';	// FIXME free reg_tipo
 /* returnExpression */
 
 
-printeableThings:	expression
+printeableThings:	expression	// FIXME free reg_tipo
 |					LIT_STRING;
 
 
@@ -232,10 +241,10 @@ forLoop: 			FOR '(' forStatement ')' '{' statementWrapper '}'			{deleteScope(sco
 
 /* HACK variabledcl already has ';' */
 /* boolExpression */
-forStatement: 		{scope++;} variabledcl {scope--;} expression ';'  varAssign;
+forStatement: 		{scope++;} variabledcl {scope--;} expression ';'  varAssign; // FIXME free reg_tipo
 
 /* boolExpression */
-whileLoop: 			WHILE '(' expression ')' '{' statementWrapper '}'			{deleteScope(scope);};
+whileLoop: 			WHILE '(' expression ')' '{' statementWrapper '}'			{deleteScope(scope);};	// FIXME free reg_tipo
 
 
 
@@ -243,11 +252,11 @@ whileLoop: 			WHILE '(' expression ')' '{' statementWrapper '}'			{deleteScope(s
 conditional: 		ifCond elifCond elseCond;
 
 /* boolExpression */
-ifCond: 			IF '(' expression ')'  '{' statementWrapper '}'				{deleteScope(scope);};
+ifCond: 			IF '(' expression ')'  '{' statementWrapper '}'				{deleteScope(scope);}; // FIXME free reg_tipo
 
 /* boolExpression */
 elifCond: 			/* empty */
-|					elifCond ELIF '(' expression ')'  '{' statementWrapper '}'	{deleteScope(scope);};
+|					elifCond ELIF '(' expression ')'  '{' statementWrapper '}'	{deleteScope(scope);}; // FIXME free reg_tipo
 
 elseCond: 			/* empty */
 |					ELSE '{' statementWrapper '}'								{deleteScope(scope);};
@@ -256,35 +265,20 @@ elseCond: 			/* empty */
 
 /********* REGLAS ASIGNACIONES *********/
 varAssign: 	ID '=' expression				{
-																		struct nodo *puntero = find($1);
-																		snprintf(line,lineSize,"\tI(0x%05d)=R%d;\n",puntero->address,$3->reg);
-																		gc(line);
-																		lib_reg($3);
+																		asignaciones($3, $1, aigual);
 																		}
 |					ID ASSIGN_ADD expression	{
-																		struct nodo *puntero = find($1);
-																		snprintf(line,lineSize, "\tI(0x%05d)=R%d+I(0x%05d);\n",puntero->address,$3->reg,puntero->address);
-																		gc(line);
-																		lib_reg($3);
+																		asignaciones($3, $1, asum);
 																		}
 |					ID ASSIGN_SUBS expression	{
-																		struct nodo *puntero = find($1);
-																		snprintf(line,lineSize, "\tI(0x%05d)=R%d-I(0x%05d);\n",puntero->address,$3->reg,puntero->address);
-																		gc(line);
-																		lib_reg($3);
+																		asignaciones($3, $1, asub);
 																		}
 |					ID ASSIGN_MULT expression	{
-																		struct nodo *puntero = find($1);
-																		snprintf(line,lineSize, "\tI(0x%05d)=R%d*I(0x%05d);\n",puntero->address,$3->reg,puntero->address);
-																		gc(line);
-																		lib_reg($3);
+																		asignaciones($3, $1, amul);
 																		}
 |					ID ASSIGN_DIV expression	{
-																		struct nodo *puntero = find($1);
-																		snprintf(line,lineSize, "\tI(0x%05d)=R%d/I(0x%05d);\n",puntero->address,$3->reg,puntero->address);
-																		gc(line);
-																		lib_reg($3);
-																		};	// FIXME tipos
+																		asignaciones($3, $1, adivi);
+																		};
 //|					LIT_STRING 											// TODO arrays
 //|					arrays 											// TODO arrays
 
@@ -294,8 +288,8 @@ varAssign: 	ID '=' expression				{
 /********* REGLAS DECLARACIÓN DE VARIABLES *********/
 variabledcl:	typePrimitive ID '=' expression ';' 	{
 																										adde($2, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), NULL);
-																										snprintf(line,lineSize, "\t#ID initialization: %s\n",$2);
-																										gc(line);
+																										snprintf(line,lineSize, "\t//ID initialization: %s - l:%d\n",$2, numlin);
+																										gc(line);// FIXME free reg_tipo
 																										}
 |					STRING ID '=' LIT_STRING ';'
 |					arraydcl;
@@ -337,13 +331,13 @@ arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' {
 arrayWrapper:	/* empty */
 |					array;
 
-array:		{longitud_array++;} expression				{if($2->tipo != tipo_array) yyerror("El valor del elemento del array es de tipo distinto al declarado para el array.");}										
+// FIXME free reg_tipo
+array:		{longitud_array++;} expression				{if($2->tipo != tipo_array) yyerror("El valor del elemento del array es de tipo distinto al declarado para el array.");}
 |			array ',' {longitud_array++;} expression 	{if($4->tipo != tipo_array) yyerror("El valor del elemento del array es de tipo distinto al declarado para el array.");};
 
 
 // TODO string equals string
-// TODO comprobar uno a uno si los operadores son correctos y funcionan
-// FIXME diferenciar tipos y validar si se puede hacer la función
+// TODO comprobar uno a uno si los operadores son correctos y funcionan en q
 // FIXME string 
 /********* REGLAS EXPRESIONES *********/
 expression:	functionCall									{
@@ -368,10 +362,10 @@ expression:	functionCall									{
 																					ex->reg = reg;
 																					ex->tipo = puntero->tipo;
 																					if (puntero->tipo == comaFlotante){
-																						snprintf(line,lineSize, "\tRR%d=I(0x%05d);  #evaluate %s\n", reg, puntero->address, $1);
+																						snprintf(line,lineSize, "\tRR%d=I(0x%05d);  //evaluate %s - l:%d\n", reg, puntero->address, $1, numlin);
 																						gc(line);
 																					}else{
-																						snprintf(line,lineSize, "\tR%d=I(0x%05d);  #evaluate %s\n", reg, puntero->address, $1);
+																						snprintf(line,lineSize, "\tR%d=I(0x%05d);  //evaluate %s - l:%d\n", reg, puntero->address, $1, numlin);
 																						gc(line);
 																					}
 																					$$ = ex;
@@ -502,7 +496,8 @@ paramsFunctionCallWrapper: 	/* empty */																										// linked list 
 											checkingParamNumber = 0;
 										};
 
-paramsFunctionCall: paramsFunctionCall ',' {checkingParamNumber++;} expression 		{	
+// FIXME free reg_tipo
+paramsFunctionCall: paramsFunctionCall ',' {checkingParamNumber++;} expression 		{
 																						struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
 																						if(param == NULL) yyerror("El numero de parametros no se corresponde con el especificado en el header.");
 																						if($4->tipo != param->tipo) yyerror("El tipo del parametro no corresponde con el del header");	
@@ -542,26 +537,53 @@ struct nodo * find(char* id){
 }
 
 void gc(char* text){
-	//printf("%s",text); // TODO do
+	printf("%s",text);
+	fputs(text, outQ);
 }
 
 int assign_reg(int tipo){
+	int len;
 	if (tipo == comaFlotante){
-
+		len = sizeof(float_regs)/sizeof(int_regs[0]);
+		for (int i = 0; i < len; i++){
+			if (!float_regs[i]){
+				float_regs[i] = true;
+				return i;
+				break;
+			}
+		}
+		yyerror("Fallo de compilador, sin registros comaFlotante");
 	}else{
-
+		len = sizeof(int_regs)/sizeof(int_regs[0]);
+		for (int i = 0; i < len; i++){
+			if (!int_regs[i]){
+				int_regs[i] = true;
+				return i;
+				break;
+			}
+		}
+		yyerror("Fallo de compilador, sin registros entero");
 	}
-	// TODO do
-	return 1;
+
 }
 
 void lib_reg(struct reg_tipo* reg){
+	int len;
 	if (reg->tipo == comaFlotante){
-
+		len = sizeof(float_regs)/sizeof(int_regs[0]);
+		if (len <= reg->reg){
+			snprintf(line,lineSize,"Fallo de compilador, el registro comaFlotante %d no está disponible, máximo %d",reg->reg, len);
+			yyerror(line);
+		}
+		float_regs[reg->reg] = false;
 	}else{
-		
+		len = sizeof(int_regs)/sizeof(int_regs[0]);
+		if (len <= reg->reg){
+			snprintf(line,lineSize,"Fallo de compilador, el registro entero %d no está disponible, máximo %d", reg->reg, len);
+			yyerror(line);
+		}
+		int_regs[reg->reg] = false;
 	}
-	// TODO do
 	free(reg);
 }
 
@@ -573,10 +595,21 @@ void adde(char* id, enum type tipo, enum category categoria, int scope, int addr
 
 void yyerror(char* mens) {
   printf("Error en linea %i: %s \n",numlin,mens);
+	fclose(outQ);
   exit(-1);
 }
 
 int main(int argc, char** argv) {
+	int len = sizeof(float_regs)/sizeof(int_regs[0]);
+	for (int i = 0; i < len; i++){
+		float_regs[i] = false;
+	}
+
+	len = sizeof(int_regs)/sizeof(int_regs[0]);
+	for (int i = 0; i < len; i++){
+		int_regs[i] = false;
+	}
+
 	char charSize = 'a';
 	lineSize = sizeof(charSize)*300;
 	line = malloc(lineSize);
@@ -585,9 +618,21 @@ int main(int argc, char** argv) {
 		yyin = fopen(argv[1],"r");
 	}
 
+	outQ = fopen(fName,"w");
+	fputs("", outQ);
+	fclose(outQ);
+	outQ = fopen(fName,"a");
+
+	snprintf(line,lineSize, "BEGIN\n");
+	gc(line);
 	yyparse();
+	snprintf(line,lineSize, "END\n");
+	gc(line);
 
 	free(line);
+	fclose(outQ);
+
+	show();
   return 0;
 }
 
@@ -595,6 +640,9 @@ int main(int argc, char** argv) {
 // Funciones auxiliares
 
 struct reg_tipo * igualdades(struct reg_tipo* izq, struct reg_tipo* der, enum op_igualdades operator){
+	snprintf(line,lineSize,"\t// Igualdad - l:%d\n",numlin);
+	gc(line);
+
 	char op[2];
 	if (operator == igual){
 		strncpy(op, "==",sizeof(op));
@@ -613,7 +661,7 @@ struct reg_tipo * igualdades(struct reg_tipo* izq, struct reg_tipo* der, enum op
 		}else if (operator == menor_igual){
 			strncpy(op, "<=",sizeof(op));
 		}else{
-			yyerror("Error de compilador");
+			yyerror("Error de compilador en la igualdad");
 		}
 	}
 
@@ -654,11 +702,16 @@ struct reg_tipo * igualdades(struct reg_tipo* izq, struct reg_tipo* der, enum op
 
 
 struct reg_tipo * logicos(struct reg_tipo* izq, struct reg_tipo* der, enum op_logicos operator){
+	snprintf(line,lineSize,"\t// Logico - l:%d\n",numlin);
+	gc(line);
+
 	char op[2];
 	if (operator == and){
 		strncpy(op, "&&",sizeof(op));
-	} else if (operator != or){
+	}else if (operator != or){
 		strncpy(op, "||",sizeof(op));
+	}else{
+		yyerror("Error de compilador en lógicos");
 	}
 
 	struct reg_tipo* res;
@@ -676,6 +729,9 @@ struct reg_tipo * logicos(struct reg_tipo* izq, struct reg_tipo* der, enum op_lo
 
 
 struct reg_tipo * aritmeticas(struct reg_tipo* izq, struct reg_tipo* der, enum op_aritmeticas operator){
+	snprintf(line,lineSize,"\t// Aritmetica - l:%d\n",numlin);
+	gc(line);
+
 	char op[1];
 	if (operator == sum){
 		strncpy(op, "+",sizeof(op));
@@ -686,7 +742,7 @@ struct reg_tipo * aritmeticas(struct reg_tipo* izq, struct reg_tipo* der, enum o
 	}else if (operator == divi){
 		strncpy(op, "/",sizeof(op));
 	}else{
-		yyerror("Error de compilador");
+		yyerror("Error de compilador en aritméticas");
 	}
 	struct reg_tipo* res;
 	if (izq->tipo == caracter && der->tipo == caracter ||
@@ -713,4 +769,114 @@ struct reg_tipo * aritmeticas(struct reg_tipo* izq, struct reg_tipo* der, enum o
 	}
 	gc(line);
 	return res;
+}
+
+int asignaciones(struct reg_tipo* reg, char* id, enum op_asignaciones operator){
+	snprintf(line,lineSize,"\t// Assign %s - l:%d\n",id,numlin);
+	gc(line);
+
+	struct nodo *puntero = find(id);
+
+	// Address registry
+	int temp = assign_reg(entero);
+	struct reg_tipo *address_reg = malloc(sizeof(struct reg_tipo));
+	address_reg->reg = temp;
+	address_reg->tipo = entero;
+
+	char op[1];
+	if (operator == aigual){	// FIXME string
+		if (reg->tipo == comaFlotante){
+			snprintf(line,lineSize,"\tR%d=0x%05d;\n", address_reg->reg, puntero->address);
+			gc(line);
+			snprintf(line,lineSize,"\tI(R%d)=RR%d;\n", address_reg->reg, reg->reg);
+			gc(line);
+		}else{
+			snprintf(line,lineSize,"\tR%d=0x%05d;\n", address_reg->reg, puntero->address);
+			gc(line);
+			snprintf(line,lineSize,"\tI(R%d)=R%d;\n", address_reg->reg, reg->reg);
+			gc(line);
+		}
+		lib_reg(address_reg);
+		lib_reg(reg);
+
+		return 0;
+	}else{
+		if (operator == asum){
+			strncpy(op, "+",sizeof(op));
+		}else if (operator == asub){
+			strncpy(op, "-",sizeof(op));
+		}else if (operator == amul){
+			strncpy(op, "*",sizeof(op));
+		}else if (operator == adivi){
+			strncpy(op, "/",sizeof(op));
+		}else{
+			yyerror("Error de compilador en aritméticas");
+		}
+	}
+
+	temp = assign_reg(puntero->tipo);
+	struct reg_tipo *val = malloc(sizeof(struct reg_tipo));
+	val->reg = temp;
+	val->tipo = puntero->tipo;
+
+	if(puntero->tipo == entero && reg->tipo == entero){
+		// Recogemos direccion en registro direccion
+		snprintf(line,lineSize,"\tR%d=0x%05d;\n", address_reg->reg, puntero->address);
+		gc(line);
+		// Guardamos valor de la direccion (usando el registro direccion) en el registro valor
+		snprintf(line,lineSize,"\tR%d=I(R%d);\n", val->reg, address_reg->reg);
+		gc(line);
+		// Operamos
+		snprintf(line,lineSize, "\tR%d=R%d%sR%d;\n",val->reg,val->reg,op,reg->reg);
+		gc(line);
+		// Guardamos en direccion
+		snprintf(line,lineSize, "\tI(R%d)=R%d;\n",address_reg->reg,val->reg);
+		gc(line);
+	}else if(puntero->tipo == comaFlotante && reg->tipo == comaFlotante){
+		// Recogemos direccion en registro direccion
+		snprintf(line,lineSize,"\tR%d=0x%05d;\n", address_reg->reg, puntero->address);
+		gc(line);
+		// Guardamos valor de la direccion (usando el registro direccion) en el registro valor
+		snprintf(line,lineSize,"\tRR%d=I(R%d);\n", val->reg, address_reg->reg);
+		gc(line);
+		// Operamos
+		snprintf(line,lineSize, "\tRR%d=RR%d%sRR%d;\n",val->reg,val->reg,op,reg->reg);
+		gc(line);
+		// Guardamos en direccion
+		snprintf(line,lineSize, "\tI(R%d)=RR%d;\n",address_reg->reg,val->reg);
+		gc(line);
+	}else if(puntero->tipo == entero && reg->tipo == comaFlotante){
+		// Recogemos direccion en registro direccion
+		snprintf(line,lineSize,"\tR%d=0x%05d;\n", address_reg->reg, puntero->address);
+		gc(line);
+		// Guardamos valor de la direccion (usando el registro direccion) en el registro valor
+		snprintf(line,lineSize,"\tR%d=I(R%d);\n", val->reg, address_reg->reg);
+		gc(line);
+		// Operamos
+		snprintf(line,lineSize, "\tR%d=R%d%sRR%d;\n",val->reg,val->reg,op,reg->reg);
+		gc(line);
+		// Guardamos en direccion
+		snprintf(line,lineSize, "\tI(R%d)=R%d;\n",address_reg->reg,val->reg);
+		gc(line);
+	}else if(puntero->tipo == comaFlotante && reg->tipo == entero){
+		// Recogemos direccion en registro direccion
+		snprintf(line,lineSize,"\tR%d=0x%05d;\n", address_reg->reg, puntero->address);
+		gc(line);
+		// Guardamos valor de la direccion (usando el registro direccion) en el registro valor
+		snprintf(line,lineSize,"\tRR%d=I(R%d);\n", val->reg, address_reg->reg);
+		gc(line);
+		// Operamos
+		snprintf(line,lineSize, "\tRR%d=RR%d%sR%d;\n",val->reg,val->reg,op,reg->reg);
+		gc(line);
+		// Guardamos en direccion
+		snprintf(line,lineSize, "\tI(R%d)=RR%d;\n",address_reg->reg,val->reg);
+		gc(line);
+	}else{
+		yyerror("Fallo en asignaciones, asegúrese de que usa tipos correctos");
+	}
+
+	lib_reg(val);
+	lib_reg(address_reg);
+	lib_reg(reg);
+	return 0;
 }
