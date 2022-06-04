@@ -83,7 +83,6 @@ struct nodo * getParameterByNumber(char *id, int n) {
 	while(puntero != NULL && count < n) {
 		count++;
 		puntero = puntero->param;
-		
 	}
 	
 	return puntero;
@@ -135,7 +134,7 @@ void show() {
 			printf("-- Inicio Parametros --\n");
 			
 			while (punteroParam != NULL) {
-				printf("type = %d | categ = %d | scope = %d | id = %s | address = %d\n", punteroParam->tipo, punteroParam->categoria, punteroParam->scope, punteroParam->id, puntero->address);
+				printf("type = %d | categ = %d | scope = %d | id = %s | address = %d\n", punteroParam->tipo, punteroParam->categoria, punteroParam->scope, punteroParam->id, punteroParam->address);
 				punteroParam = punteroParam->param;
 			}
 			printf("-- Fin Parametros --\n\n");

@@ -1,0 +1,11 @@
+
+header{
+	int sum(int x, float y, int z);
+}
+
+int main() {
+	
+	int x1 = 3;
+
+	int y1 = sum(8 + x1, 2.5, 9);
+}

@@ -43,6 +43,9 @@ int checkingParamNumber = 0;
 int longitud_array = 0;
 enum type tipo_array = -1;
 
+// Variable auxiliar para controlar el movimiento relativo de R7
+int r7Displacement = 0;
+
 void yyerror(char*);
 void lib_reg(struct reg_tipo*);
 int assign_reg(int tipo);
@@ -136,7 +139,7 @@ struct nodo * find(char* id);
 
 %%	/********* REGLAS GRAMATICALES *********/
 
-program: 			header global functionArea
+program: 			header global functionArea;
 
 
 /********* REGLAS DEL HEADER *********/
@@ -286,10 +289,19 @@ varAssign: 	ID '=' expression				{
 
 
 /********* REGLAS DECLARACIÓN DE VARIABLES *********/
-variabledcl:	typePrimitive ID '=' expression ';' 	{
-																										adde($2, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), NULL);
+variabledcl:	typePrimitive ID '=' expression ';' 	{												/*adde($2, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), NULL);
 																										snprintf(line,lineSize, "\t//ID initialization: %s - l:%d\n",$2, numlin);
-																										gc(line);// FIXME free reg_tipo
+																										gc(line);// FIXME free reg_tipo*/
+																										
+																										r7Displacement++;
+																										adde($2, $1, (scope == 0) ? global : local, scope, +(r7Displacement * 4), NULL);
+																										
+																										snprintf(line, lineSize, "\tR7 = R7 - %d\n", 4 * r7Displacement);
+																										gc(line);
+																										snprintf(line, lineSize, "\tI(R6 - %d) = R%d\n", 4 * r7Displacement, $4->reg);
+																										gc(line);
+																										
+																										free($4);
 																										}
 |					STRING ID '=' LIT_STRING ';'
 |					arraydcl;
@@ -362,10 +374,10 @@ expression:	functionCall									{
 																					ex->reg = reg;
 																					ex->tipo = puntero->tipo;
 																					if (puntero->tipo == comaFlotante){
-																						snprintf(line,lineSize, "\tRR%d=I(0x%05d);  //evaluate %s - l:%d\n", reg, puntero->address, $1, numlin);
+																						snprintf(line,lineSize, "\tRR%d = I(R6 - %d);  //evaluate %s %d\n", reg, puntero->address, $1, numlin);
 																						gc(line);
 																					}else{
-																						snprintf(line,lineSize, "\tR%d=I(0x%05d);  //evaluate %s - l:%d\n", reg, puntero->address, $1, numlin);
+																						snprintf(line,lineSize, "\tR%d = I(R6 - %d);  //evaluate %s %d\n", reg, puntero->address, $1, numlin);
 																						gc(line);
 																					}
 																					$$ = ex;
@@ -433,7 +445,7 @@ literals: 			LIT_INT							{
 																		struct reg_tipo *res =  malloc(sizeof(struct reg_tipo));
 																		res->reg = reg;
 																		res->tipo = entero;
-																		snprintf(line,lineSize, "\tR%d=%ld;\n",reg, $1);
+																		snprintf(line,lineSize, "\tR%d = %ld;\n",reg, $1);
 																		gc(line);
 																		$$ = res;
 																		}
@@ -442,7 +454,7 @@ literals: 			LIT_INT							{
 																		struct reg_tipo *res =  malloc(sizeof(struct reg_tipo));
 																		res->reg = reg;
 																		res->tipo = comaFlotante;
-																		snprintf(line,lineSize, "\tRR%d=%f;\n",reg, $1);
+																		snprintf(line,lineSize, "\tRR%d = %f;\n",reg, $1);
 																		gc(line);
 																		$$ = res;
 																		}
@@ -451,7 +463,7 @@ literals: 			LIT_INT							{
 																		struct reg_tipo *res =  malloc(sizeof(struct reg_tipo));
 																		res->reg = reg;
 																		res->tipo = caracter;
-																		snprintf(line,lineSize, "\tR%d=%d;\n",reg, $1);
+																		snprintf(line,lineSize, "\tR%d = %d;\n",reg, $1);
 																		gc(line);
 																		$$ = res;
 																		}
@@ -462,7 +474,7 @@ boolLiteral:		TRUE								{
 																		struct reg_tipo *res =  malloc(sizeof(struct reg_tipo));
 																		res->reg = reg;
 																		res->tipo = boolean;
-																		snprintf(line,lineSize, "\tR%d=1;\n",reg);
+																		snprintf(line,lineSize, "\tR%d = 1;\n",reg);
 																		gc(line);
 																		$$ = res;
 																		}
@@ -471,7 +483,7 @@ boolLiteral:		TRUE								{
 																		struct reg_tipo *res =  malloc(sizeof(struct reg_tipo));
 																		res->reg = reg;
 																		res->tipo = boolean;
-																		snprintf(line,lineSize, "\tR%d=0;\n",reg);
+																		snprintf(line,lineSize, "\tR%d = 0;\n",reg);
 																		gc(line);
 																		$$ = res;
 																		};
@@ -479,18 +491,33 @@ boolLiteral:		TRUE								{
 /* TODO: Hacer comprobaciones a la hora de llamar a la funcion: id correcta, num param, etc */
 
 /********* REGLAS LLAMADA A UNA FUNCION*********/
-functionCall: 		ID {functionName = $1; functionNumberParam = countFunctionParameters($1);}'(' paramsFunctionCallWrapper ')' 	{
-																																		struct nodo *puntero = search($1, funcion);
-																																		if(puntero == NULL) {
-																																			yyerror("La funcion no esta declarada en el header");
-																																		}
-																																		
-																																		functionNumberParam = -1;
-																																		functionName = "";
-																																		
-																																	};		// search id y recoger parámetros, loopearlos en orden
+functionCall: 		ID {
+							functionName = $1; functionNumberParam = countFunctionParameters($1);
 
-paramsFunctionCallWrapper: 	/* empty */																										// linked list u otro stack vacío
+							snprintf(line,lineSize, "\n\tR7 = R7 - %d\n", (functionNumberParam + 2) * 4);
+							gc(line);
+						}
+					
+					'(' paramsFunctionCallWrapper ')' 	{
+																	struct nodo *puntero = search($1, funcion);
+																	if(puntero == NULL) {
+																		yyerror("La funcion no esta declarada en el header");
+																	}
+																	
+																	snprintf(line,lineSize, "\tP(R7 + %d) = R6\n", (functionNumberParam + 1) * 4);
+																	gc(line);	
+																	
+																	snprintf(line,lineSize, "\tP(R7 + %d) = etiqueta\n", (functionNumberParam) * 4);
+																	gc(line);	
+																	
+																	snprintf(line,lineSize, "L et:\tR7 = R7 + %d\n", (functionNumberParam + 2) * 4);
+																	gc(line);	
+																	
+																	functionNumberParam = -1;
+																	functionName = "";
+																};		
+
+paramsFunctionCallWrapper: 	/* empty */																										
 |					paramsFunctionCall {
 											if(checkingParamNumber < functionNumberParam) yyerror("El numero de parametros es menor que en el header.");
 											checkingParamNumber = 0;
@@ -501,12 +528,34 @@ paramsFunctionCall: paramsFunctionCall ',' {checkingParamNumber++;} expression 	
 																						struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
 																						if(param == NULL) yyerror("El numero de parametros no se corresponde con el especificado en el header.");
 																						if($4->tipo != param->tipo) yyerror("El tipo del parametro no corresponde con el del header");	
-																					}														// stackear parámetros
+																						
+																						param->address = checkingParamNumber * 4;
+
+																						if($4->tipo != comaFlotante) {
+																							snprintf(line,lineSize, "\tI(R7 + %d) = R%d\n", (checkingParamNumber - 1) * 4, $4->reg);
+																						} else {
+																							snprintf(line,lineSize, "\tI(R7 + %d) = RR%d\n", (checkingParamNumber - 1) * 4, $4->reg);
+																						}
+																						gc(line);
+																						
+																						free($4);
+																					}												
 |	{checkingParamNumber++;} expression 											{	
 																						struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
 																						if(param == NULL) yyerror("El numero de parametros no se corresponde con el especificado en el header.");
 																						if($2->tipo != param->tipo) yyerror("El tipo del parametro no corresponde con el del header");	
-																					};																					// linked list u otro stack
+																						
+																						param->address = checkingParamNumber*4;
+
+																						if($2->tipo != comaFlotante) {
+																							snprintf(line,lineSize, "\tI(R7 + %d) = R%d\n", (checkingParamNumber - 1) * 4, $2->reg);
+																						} else {
+																							snprintf(line,lineSize, "\tI(R7 + %d) = RR%d\n", (checkingParamNumber - 1) * 4, $2->reg);
+																						}
+																						gc(line);
+																						
+																						free($2);
+																					};																					
 
 
 
