@@ -20,6 +20,9 @@ enum op_igualdades{igual, no_igual, mayor, mayor_igual, menor, menor_igual};
 enum op_logicos{and, or};
 enum op_aritmeticas{sum, sub, mul, divi};
 
+int int_regs[1   +5];
+int float_regs[1 +3];
+
 // Struct auxiliar para tratar con valores en la zona de expression
 struct reg_tipo{
 	int reg;
@@ -294,7 +297,7 @@ varAssign: 	ID '=' expression				{
 /********* REGLAS DECLARACIÓN DE VARIABLES *********/
 variabledcl:	typePrimitive ID '=' expression ';' 	{
 																										adde($2, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), NULL);
-																										snprintf(line,lineSize, "\t#ID initialization: %s\n",$2);
+																										snprintf(line,lineSize, "\t//ID initialization: %s\n",$2);
 																										gc(line);
 																										}
 |					STRING ID '=' LIT_STRING ';'
@@ -368,10 +371,10 @@ expression:	functionCall									{
 																					ex->reg = reg;
 																					ex->tipo = puntero->tipo;
 																					if (puntero->tipo == comaFlotante){
-																						snprintf(line,lineSize, "\tRR%d=I(0x%05d);  #evaluate %s\n", reg, puntero->address, $1);
+																						snprintf(line,lineSize, "\tRR%d=I(0x%05d);  //evaluate %s\n", reg, puntero->address, $1);
 																						gc(line);
 																					}else{
-																						snprintf(line,lineSize, "\tR%d=I(0x%05d);  #evaluate %s\n", reg, puntero->address, $1);
+																						snprintf(line,lineSize, "\tR%d=I(0x%05d);  //evaluate %s\n", reg, puntero->address, $1);
 																						gc(line);
 																					}
 																					$$ = ex;
@@ -542,24 +545,51 @@ struct nodo * find(char* id){
 }
 
 void gc(char* text){
-	//printf("%s",text); // TODO do
+	printf("%s",text); // TODO do
 }
 
 int assign_reg(int tipo){
+	int len;
 	if (tipo == comaFlotante){
-
+		len = sizeof(float_regs)/sizeof(int_regs[0]);
+		for (int i = 0; i < len; i++){
+			if (!float_regs[i]){
+				float_regs[i] = true;
+				return i;
+				break;
+			}
+		}
+		yyerror("Fallo de compilador, sin registros comaFlotante");
 	}else{
-
+		len = sizeof(int_regs)/sizeof(int_regs[0]);
+		for (int i = 0; i < len; i++){
+			if (!int_regs[i]){
+				int_regs[i] = true;
+				return i;
+				break;
+			}
+		}
+		yyerror("Fallo de compilador, sin registros entero");
 	}
-	// TODO do
-	return 1;
+
 }
 
 void lib_reg(struct reg_tipo* reg){
+	int len;
 	if (reg->tipo == comaFlotante){
-
+		len = sizeof(float_regs)/sizeof(int_regs[0]);
+		if (len <= reg->reg){
+			snprintf(line,lineSize,"Fallo de compilador, el registro comaFlotante %d no está disponible, máximo %d",reg->reg, len);
+			yyerror(line);
+		}
+		float_regs[reg->reg] = false;
 	}else{
-		
+		len = sizeof(int_regs)/sizeof(int_regs[0]);
+		if (len <= reg->reg){
+			snprintf(line,lineSize,"Fallo de compilador, el registro entero %d no está disponible, máximo %d", reg->reg, len);
+			yyerror(line);
+		}
+		int_regs[reg->reg] = false;
 	}
 	// TODO do
 	free(reg);
@@ -577,6 +607,16 @@ void yyerror(char* mens) {
 }
 
 int main(int argc, char** argv) {
+	int len = sizeof(float_regs)/sizeof(int_regs[0]);
+	for (int i = 0; i < len; i++){
+		float_regs[i] = false;
+	}
+
+	len = sizeof(int_regs)/sizeof(int_regs[0]);
+	for (int i = 0; i < len; i++){
+		int_regs[i] = false;
+	}
+
 	char charSize = 'a';
 	lineSize = sizeof(charSize)*300;
 	line = malloc(lineSize);
