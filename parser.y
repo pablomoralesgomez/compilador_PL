@@ -79,6 +79,7 @@ struct nodo * find(char* id);
 %token HEADER
 %token GLOBAL
 %token RETURN
+%token PRINT
 
 %token ASSIGN_ADD
 %token ASSIGN_SUBS
@@ -212,10 +213,14 @@ statement: 			loop
 |					functionCall ';'
 |					varAssign ';'
 |					BREAK ';'
+|					PRINT '(' printeableThings ')' ';'
 |					CONTINUE ';'
 |					RETURN expression ';';
 /* returnExpression */
 
+
+printeableThings:	expression
+|					LIT_STRING;
 
 
 /********* REGLAS DECLARACIÓN DE BUCLES *********/
@@ -227,7 +232,7 @@ forLoop: 			FOR '(' forStatement ')' '{' statementWrapper '}'			{deleteScope(sco
 
 /* HACK variabledcl already has ';' */
 /* boolExpression */
-forStatement: 		variabledcl expression ';'  varAssign;
+forStatement: 		{scope++;} variabledcl {scope--;} expression ';'  varAssign;
 
 /* boolExpression */
 whileLoop: 			WHILE '(' expression ')' '{' statementWrapper '}'			{deleteScope(scope);};
@@ -324,10 +329,7 @@ arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' {
 																									struct array *arr = malloc(sizeof(struct array));
 																									arr->length = longitud_array;		
 																									arr->address = getAddress($1, arr->length);
-																									adde($4, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), arr);
-																									
-																									printf("length = %d\n", longitud_array);
-																									
+																									adde($4, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), arr);																									
 																									tipo_array = -1;
 																									longitud_array = 0;
 																								}; 
@@ -540,7 +542,7 @@ struct nodo * find(char* id){
 }
 
 void gc(char* text){
-	printf("%s",text); // TODO do
+	//printf("%s",text); // TODO do
 }
 
 int assign_reg(int tipo){
