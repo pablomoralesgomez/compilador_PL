@@ -27,6 +27,7 @@ enum op_asignaciones{aigual, asum, asub, amul, adivi};
 int tagCount = 1;
 int br = 0;
 int co = 0;
+int fi = 0;
 
 int int_regs[1   +100];
 int float_regs[1 +100];
@@ -271,7 +272,7 @@ forLoop: 	{$<int1>$ = co;}//1 								//Store previous continue tag
 					if ($11->tipo != boolean){
 						yyerror("La expresión del bucle no es booleana");
 					}
-					snprintf(line,lineSize, "\tIF (!R%d) GT(%d);//for bool - l:%d\n",$11->reg, $<int1>4,numlin);
+					snprintf(line,lineSize, "\tIF (!R%d) GT(%d); //for bool - l:%d\n",$11->reg, $<int1>4,numlin);
 					gc(line);
 					lib_reg($11);
 					}//13
@@ -300,7 +301,7 @@ whileLoop: 	{$<int1>$ = co;}//1 									//Store previous continue tag
 						if ($8->tipo != boolean){
 							yyerror("La expresión del bucle no es booleana");
 						}
-						snprintf(line,lineSize, "\tIF (!R%d) GT(%d);//while bool - l:%d\n",$8->reg, $<int1>4,numlin);
+						snprintf(line,lineSize, "\tIF (!R%d) GT(%d); //while bool - l:%d\n",$8->reg, $<int1>4,numlin);
 						gc(line);
 						lib_reg($8);
 						}
@@ -308,22 +309,70 @@ whileLoop: 	{$<int1>$ = co;}//1 									//Store previous continue tag
 						{
 						co = $<int1>1;	// Retrieve previous continue tag
 						br = $<int1>2;	// Retrieve previous break tag
-						snprintf(line,lineSize, "L %d: //while bre - l:%d\n", $<int1>4,numlin);
+						snprintf(line,lineSize, "L %d: // while bre - l:%d\n", $<int1>4,numlin);
 						gc(line);
 						deleteScope(scope);
-						};	// FIXME free reg_tipo
+						};
 
 
 
 /********* REGLAS DECLARACIÓN DE CONDICIONALES*********/
-conditional: 		ifCond elifCond elseCond;
+conditional: 	{$<int1>$ = fi;}//1 								//Store previous if tag
+							{fi = getTag(); $<int1>$ = fi;}//2	//Store current if tag
+							{snprintf(line,lineSize, "//if start - l:%d\n",numlin);gc(line);}
 
-/* boolExpression */
-ifCond: 			IF '(' expression ')'  '{' statementWrapper '}'				{deleteScope(scope);}; // FIXME free reg_tipo
+							ifCond elifCond elseCond
+							
+							{
+							fi = $<int1>1;	// Retrieve previous if tag
+							snprintf(line,lineSize, "L %d: //if exit - l:%d\n", $<int1>2,numlin);
+							gc(line);
+							};
 
-/* boolExpression */
+
+ifCond: 			{$<int1>$ = getTag();}	// if not
+							IF '(' expression ')' {
+							if ($4->tipo != boolean){
+								yyerror("La expresión del if no es booleana");
+							}
+							snprintf(line,lineSize, "\tIF (!R%d) GT(%d); //if bool - l:%d\n",$4->reg, $<int1>1,numlin);
+							gc(line);
+							lib_reg($4);
+							}
+							'{' statementWrapper 
+							{
+							snprintf(line,lineSize, "\tGT(%d); //exit if - l:%d\n",fi,numlin);
+							gc(line);
+							}
+							'}'
+							{
+							snprintf(line,lineSize, "L %d: //if not - l:%d\n", $<int1>1,numlin);
+							gc(line);
+							deleteScope(scope);
+							}; // FIXME free reg_tipo
+
 elifCond: 			/* empty */
-|					elifCond ELIF '(' expression ')'  '{' statementWrapper '}'	{deleteScope(scope);}; // FIXME free reg_tipo
+|					elifCond 
+					{$<int1>$ = getTag();}	// if not
+					ELIF '(' expression ')' {
+					if ($5->tipo != boolean){
+						yyerror("La expresión del if no es booleana");
+					}
+					snprintf(line,lineSize, "\tIF (!R%d) GT(%d);//elif bool - l:%d\n",$5->reg, $<int1>2,numlin);
+					gc(line);
+					lib_reg($5);
+					}
+					'{' statementWrapper
+					{
+					snprintf(line,lineSize, "\tGT(%d); //exit elif - l:%d\n",fi,numlin);
+					gc(line);
+					}
+					'}'
+					{
+					snprintf(line,lineSize, "L %d: //elif not - l:%d\n", $<int1>2,numlin);
+					gc(line);
+					deleteScope(scope);
+					}; // FIXME free reg_tipo
 
 elseCond: 			/* empty */
 |					ELSE '{' statementWrapper '}'								{deleteScope(scope);};
