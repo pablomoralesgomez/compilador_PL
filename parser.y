@@ -654,7 +654,7 @@ paramsFunctionCall: paramsFunctionCall ',' {checkingParamNumber++;} expression 	
 																						}
 																						gc(line);
 																						
-																						free($4);
+																						lib_reg($4);
 																					}												
 |	{checkingParamNumber++;} expression 											{	
 																						struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
@@ -670,7 +670,7 @@ paramsFunctionCall: paramsFunctionCall ',' {checkingParamNumber++;} expression 	
 																						}
 																						gc(line);
 																						
-																						free($2);
+																						lib_reg($2);
 																					};																					
 
 
