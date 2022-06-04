@@ -17,4 +17,9 @@ global{
 int main() {
 	boolean test = true;
 	boolean d = test != true;
+	x = x + df;
+	x = df == df;
+	x = x - x;
+	x = x * x;
+	x = x / x;
 }

@@ -1,5 +1,6 @@
 %{
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "string.h"
@@ -15,6 +16,9 @@ int lineSize;
 #define true 1
 #define false 0
 
+enum op_igualdades{igual, no_igual, mayor, mayor_igual, menor, menor_igual};
+enum op_logicos{and, or};
+enum op_aritmeticas{sum, sub, mul, divi};
 
 // Struct auxiliar para tratar con valores en la zona de expression
 struct reg_tipo{
@@ -37,7 +41,9 @@ int assign_reg(int tipo);
 void gc(char* text);
 
 void adde(char*, enum type, enum category, int, int , struct array*);
-struct reg_tipo * igualdades(struct reg_tipo*, struct reg_tipo*, int);
+struct reg_tipo * igualdades(struct reg_tipo*, struct reg_tipo*, enum op_igualdades);
+struct reg_tipo * logicos(struct reg_tipo*, struct reg_tipo*, enum op_logicos);
+struct reg_tipo * aritmeticas(struct reg_tipo*, struct reg_tipo*, enum op_aritmeticas);
 
 struct nodo * find(char* id);
 
@@ -94,14 +100,14 @@ struct nodo * find(char* id);
 	float fl;
 	char ch;
 	int registry;
-	int direction;
 	struct reg_tipo * expr;
+	int tip;
 }
 
 %token <str>ID
 %token MAIN
 
-%type <int4>typeFunction typePrimitive typeVariable
+%type <tip>typeFunction typePrimitive typeVariable
 %type <expr> expression literals boolLiteral functionCall
 %type <registry> varAssign
 
@@ -286,7 +292,11 @@ varAssign: 	ID '=' expression				{
 
 
 /********* REGLAS DECLARACIÓN DE VARIABLES *********/
-variabledcl:	typePrimitive ID '=' expression ';' 	{adde($2, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), NULL);}
+variabledcl:	typePrimitive ID '=' expression ';' 	{
+																										adde($2, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), NULL);
+																										snprintf(line,lineSize, "\t#ID initialization: %s\n",$2);
+																										gc(line);
+																										}
 |					STRING ID '=' LIT_STRING ';'
 |					arraydcl;
 
@@ -345,17 +355,26 @@ expression:	functionCall									{
 																					struct nodo *puntero = find($1);
 																					if (puntero->array == NULL) yyerror("La ID no es una array");
 																					int reg = assign_reg(puntero->tipo);
-																					struct reg_tipo ex = {reg ,puntero->tipo};
+																					struct reg_tipo *ex =  malloc(sizeof(struct reg_tipo));
+																					ex->reg = reg;
+																					ex->tipo = puntero->tipo; // FIXME if array it should return caracter, not ristra
 																					// TODO collect from array
 																					}
 |					ID															{
 																					struct nodo *puntero = find($1);
 																					if (puntero->array != NULL) yyerror("La ID es una array");
 																					int reg = assign_reg(puntero->tipo);
-																					struct reg_tipo ex = {reg ,puntero->tipo};
-																					snprintf(line,lineSize, "\tR%d=I(0x%05d);\n", reg, puntero->address);
-																					gc(line);
-																					$$ = &ex;
+																					struct reg_tipo *ex = malloc(sizeof(struct reg_tipo));
+																					ex->reg = reg;
+																					ex->tipo = puntero->tipo;
+																					if (puntero->tipo == comaFlotante){
+																						snprintf(line,lineSize, "\tRR%d=I(0x%05d);  #evaluate %s\n", reg, puntero->address, $1);
+																						gc(line);
+																					}else{
+																						snprintf(line,lineSize, "\tR%d=I(0x%05d);  #evaluate %s\n", reg, puntero->address, $1);
+																						gc(line);
+																					}
+																					$$ = ex;
 																					}
 |					literals												{$$ = $1;}
 |					NOT expression									{
@@ -377,100 +396,90 @@ expression:	functionCall									{
 																					}											// numeros
 |					'(' expression ')'							{$$ = $2;} // todos
 |					expression EQUALS expression		{
-																					$$ = igualdades($1, $3, true);
+																					$$ = igualdades($1, $3, igual);
 																					}
 |					expression NOT_EQ expression		{
-																					$$ = igualdades($1, $3, false);
+																					$$ = igualdades($1, $3, no_igual);
 																					}
 |					expression LESS_EQ expression		{
-																					snprintf(line,lineSize, "\tR%d=R%d<=R%d;\n",$1->reg,$1->reg,$3->reg);
-																					gc(line);
-																					lib_reg($3);
+																					$$ = igualdades($1, $3, menor_igual);
 																					}
 |					expression BIGGER_EQ expression {
-																					snprintf(line,lineSize, "\tR%d=R%d>=R%d;\n",$1->reg,$1->reg,$3->reg);
-																					gc(line);
-																					lib_reg($3);
+																					$$ = igualdades($1, $3, mayor_igual);
 																					}
 |					expression '>' expression				{
-																					snprintf(line,lineSize, "\tR%d=R%d<R%d;\n"	,$1->reg,$1->reg,$3->reg);
-																					gc(line);
-																					lib_reg($3);
+																					$$ = igualdades($1, $3, menor);
 																					}
 |					expression '<' expression 			{
-																					snprintf(line,lineSize, "\tR%d=R%d<R%d;\n"	,$1->reg,$1->reg,$3->reg);
-																					gc(line);
-																					lib_reg($3);
+																					$$ = igualdades($1, $3, menor);
 																					}
 |					expression OR expression				{
-																					snprintf(line,lineSize, "\tR%d=R%d||R%d;\n",$1->reg,$1->reg,$3->reg);
-																					gc(line);
-																					lib_reg($3);
+																					$$ = igualdades($1, $3, or);
 																					}
 |					expression AND expression 			{
-																					snprintf(line,lineSize, "\tR%d=R%d&&R%d;\n",$1->reg,$1->reg,$3->reg);
-																					gc(line);
-																					lib_reg($3);
+																					$$ = igualdades($1, $3, and);
 																					}
 |					expression '+' expression 			{
-																					snprintf(line,lineSize, "\tR%d=R%d+R%d;\n"	,$1->reg,$1->reg,$3->reg);
-																					gc(line);
-																					lib_reg($3);
+																					$$ = aritmeticas($1, $3, sum);
 																					}
 |					expression '-' expression 			{
-																					snprintf(line,lineSize, "\tR%d=R%d-R%d;\n"	,$1->reg,$1->reg,$3->reg);
-																					gc(line);
-																					lib_reg($3);
+																					$$ = aritmeticas($1, $3, sub);
 																					}
 |					expression '*' expression 			{
-																					snprintf(line,lineSize, "\tR%d=R%d*R%d;\n"	,$1->reg,$1->reg,$3->reg);
-																					gc(line);
-																					lib_reg($3);
+																					$$ = aritmeticas($1, $3, mul);
 																					}
 |					expression '/' expression 			{
-																					snprintf(line,lineSize, "\tR%d=R%d/R%d;\n"	,$1->reg,$1->reg,$3->reg);
-																					gc(line);
-																					lib_reg($3);
+																					$$ = aritmeticas($1, $3, divi);
 																					}
 |					expression '^' expression 			// TODO crear función interna
 |					expression '%' expression; 			// TODO crear función interna
 
 literals: 			LIT_INT							{
 																		int reg = assign_reg(entero);
-																		struct reg_tipo res = {reg, entero};
+																		struct reg_tipo *res =  malloc(sizeof(struct reg_tipo));
+																		res->reg = reg;
+																		res->tipo = entero;
 																		snprintf(line,lineSize, "\tR%d=%ld;\n",reg, $1);
 																		gc(line);
-																		$$ = &res;
+																		$$ = res;
 																		}
 |					LIT_FLOAT 								{
 																		int reg = assign_reg(comaFlotante);
-																		struct reg_tipo res = {reg, comaFlotante};
+																		struct reg_tipo *res =  malloc(sizeof(struct reg_tipo));
+																		res->reg = reg;
+																		res->tipo = comaFlotante;
 																		snprintf(line,lineSize, "\tRR%d=%f;\n",reg, $1);
 																		gc(line);
-																		$$ = &res;
+																		$$ = res;
 																		}
 |					LIT_CHAR 									{
 																		int reg = assign_reg(entero);
-																		struct reg_tipo res = {reg, caracter};
+																		struct reg_tipo *res =  malloc(sizeof(struct reg_tipo));
+																		res->reg = reg;
+																		res->tipo = caracter;
 																		snprintf(line,lineSize, "\tR%d=%d;\n",reg, $1);
 																		gc(line);
-																		$$ = &res;
+																		$$ = res;
 																		}
 |					boolLiteral								{$$ = $1;};
 
 boolLiteral:		TRUE								{
 																		int reg = assign_reg(entero);
-																		struct reg_tipo res = {reg, boolean};
+																		struct reg_tipo *res =  malloc(sizeof(struct reg_tipo));
+																		res->reg = reg;
+																		res->tipo = boolean;
 																		snprintf(line,lineSize, "\tR%d=1;\n",reg);
 																		gc(line);
-																		$$ = &res;
+																		$$ = res;
 																		}
 |					FALSE											{
 																		int reg = assign_reg(entero);
-																		struct reg_tipo res = {reg, boolean};
+																		struct reg_tipo *res =  malloc(sizeof(struct reg_tipo));
+																		res->reg = reg;
+																		res->tipo = boolean;
 																		snprintf(line,lineSize, "\tR%d=0;\n",reg);
 																		gc(line);
-																		$$ = &res;
+																		$$ = res;
 																		};
 
 /* TODO: Hacer comprobaciones a la hora de llamar a la funcion: id correcta, num param, etc */
@@ -553,6 +562,7 @@ void lib_reg(struct reg_tipo* reg){
 		
 	}
 	// TODO do
+	free(reg);
 }
 
 void adde(char* id, enum type tipo, enum category categoria, int scope, int address, struct array *array) {
@@ -584,11 +594,30 @@ int main(int argc, char** argv) {
 
 // Funciones auxiliares
 
-struct reg_tipo * igualdades(struct reg_tipo* izq, struct reg_tipo* der, int equals){
-	char op[2]= "!=";
-	if (equals){
-		op[0] = '=';
+struct reg_tipo * igualdades(struct reg_tipo* izq, struct reg_tipo* der, enum op_igualdades operator){
+	char op[2];
+	if (operator == igual){
+		strncpy(op, "==",sizeof(op));
+	}else if (operator == no_igual){
+		strncpy(op, "!=",sizeof(op));
+	}else{
+		if (izq->tipo == boolean && der->tipo == boolean){
+			yyerror("Fallo en igualdad, asegúrese de que usa tipos correctos");
+		}
+		if (operator == mayor){
+			strncpy(op, ">",sizeof(op));
+		}else if (operator == mayor_igual){
+			strncpy(op, ">=",sizeof(op));
+		}else if (operator == menor){
+			strncpy(op, "<",sizeof(op));
+		}else if (operator == menor_igual){
+			strncpy(op, "<=",sizeof(op));
+		}else{
+			yyerror("Error de compilador");
+		}
 	}
+
+
 	struct reg_tipo* res;
 	if (izq->tipo == caracter && der->tipo == caracter ||
 			izq->tipo == entero && der->tipo == entero ||
@@ -599,9 +628,14 @@ struct reg_tipo * igualdades(struct reg_tipo* izq, struct reg_tipo* der, int equ
 		lib_reg(der);
 		res = izq;
 	}else if(izq->tipo == comaFlotante && der->tipo == comaFlotante){
-		snprintf(line,lineSize, "\tR%d=RR%d%sRR%d;\n",izq->reg,izq->reg,op,der->reg);
+		int reg = assign_reg(entero);
+		snprintf(line,lineSize, "\tR%d=RR%d%sRR%d;\n",reg ,izq->reg,op,der->reg); // FIXME get register
 		lib_reg(der);
-		res = izq;
+		lib_reg(izq);
+		struct reg_tipo *aux =  malloc(sizeof(struct reg_tipo));
+		aux->reg = reg;
+		aux->tipo = boolean;
+		res = aux;
 	}else if(izq->tipo == comaFlotante && der->tipo == entero){
 		snprintf(line,lineSize, "\tR%d=RR%d%sR%d;\n",der->reg,izq->reg,op,der->reg);
 		lib_reg(izq);
@@ -614,6 +648,69 @@ struct reg_tipo * igualdades(struct reg_tipo* izq, struct reg_tipo* der, int equ
 		yyerror("Fallo en igualdad, asegúrese de que usa tipos correctos");
 	}
 	res->tipo = boolean;
+	gc(line);
+	return res;
+}
+
+
+struct reg_tipo * logicos(struct reg_tipo* izq, struct reg_tipo* der, enum op_logicos operator){
+	char op[2];
+	if (operator == and){
+		strncpy(op, "&&",sizeof(op));
+	} else if (operator != or){
+		strncpy(op, "||",sizeof(op));
+	}
+
+	struct reg_tipo* res;
+	if (izq->tipo == boolean && der->tipo == boolean){
+		snprintf(line,lineSize, "\tR%d=R%d%sR%d;\n",izq->reg,izq->reg,op,der->reg);
+		lib_reg(der);
+		res = izq;
+	}else{
+		yyerror("Fallo en lógicos, asegúrese de que usa tipos correctos");
+	}
+	res->tipo = boolean;
+	gc(line);
+	return res;
+}
+
+
+struct reg_tipo * aritmeticas(struct reg_tipo* izq, struct reg_tipo* der, enum op_aritmeticas operator){
+	char op[1];
+	if (operator == sum){
+		strncpy(op, "+",sizeof(op));
+	}else if (operator == sub){
+		strncpy(op, "-",sizeof(op));
+	}else if (operator == mul){
+		strncpy(op, "*",sizeof(op));
+	}else if (operator == divi){
+		strncpy(op, "/",sizeof(op));
+	}else{
+		yyerror("Error de compilador");
+	}
+	struct reg_tipo* res;
+	if (izq->tipo == caracter && der->tipo == caracter ||
+			izq->tipo == entero && der->tipo == entero ||
+			izq->tipo == entero && der->tipo == caracter ||
+			izq->tipo == caracter && der->tipo == entero){
+		snprintf(line,lineSize, "\tR%d=R%d%sR%d;\n",izq->reg,izq->reg,op,der->reg);
+		lib_reg(der);
+		res = izq;
+	}else if(izq->tipo == comaFlotante && der->tipo == comaFlotante){
+		snprintf(line,lineSize, "\tRR%d=RR%d%sRR%d;\n",izq->reg,izq->reg,op,der->reg);
+		lib_reg(der);
+		res = izq;
+	}else if(izq->tipo == comaFlotante && der->tipo == entero){
+		snprintf(line,lineSize, "\tRR%d=RR%d%sR%d;\n",izq->reg,izq->reg,op,der->reg);
+		lib_reg(der);
+		res = izq;
+	}else if(izq->tipo == entero && der->tipo == comaFlotante){
+		snprintf(line,lineSize, "\tRR%d=R%d%sRR%d;\n",der->reg,izq->reg,op,der->reg);
+		lib_reg(izq);
+		res = der;
+	}else{
+		yyerror("Fallo en aritméticas, asegúrese de que usa tipos correctos");
+	}
 	gc(line);
 	return res;
 }
