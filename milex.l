@@ -38,6 +38,7 @@ String						{return STRING;}
 header						{return HEADER;}
 global						{return GLOBAL;}
 return						{return RETURN;}
+print						{return PRINT;}
 
 \+=							{return ASSIGN_ADD;}
 -=							{return ASSIGN_SUBS;}
