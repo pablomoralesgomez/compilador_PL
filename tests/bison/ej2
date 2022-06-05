@@ -3,20 +3,20 @@ header{
 	int sum(int x, float y, int z);
 }
 
-
-
-
-int main() {
-	
-	int x = 3;
-
-	sum(8 + x, 2.5, 9);
-	
-	int fr = 45;
-}
-
 int sum(int x, float y, int z) {
 	int res = x + y + z;
 	return res;
 	
 }
+
+int main() {
+	
+	int x = 3;
+
+	int h = 5 + sum(8 + x, 2.5, 9);
+	
+	int fr = 45;
+}
+
+
+

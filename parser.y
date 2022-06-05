@@ -29,7 +29,7 @@ int br = 0;
 int co = 0;
 int fi = 0;
 
-int int_regs[1   +5];
+int int_regs[1  + 5];
 int float_regs[1 +3];
 
 // Struct auxiliar para tratar con valores en la zona de expression
@@ -50,7 +50,9 @@ enum type tipo_array = -1;
 // Variable auxiliar para controlar el movimiento relativo de R7
 int r7Displacement = 0;
 
+
 void yyerror(char*);
+
 void lib_reg(struct reg_tipo*);
 int assign_reg(int tipo);
 void gc(char* text);
@@ -124,8 +126,9 @@ struct nodo * find(char* id);
 %token <str>ID
 %token MAIN
 
-%type <tip>typeFunction typePrimitive typeVariable
-%type <expr> expression literals boolLiteral functionCall
+%type <tip> typeFunction typePrimitive typeVariable
+%type <str> functionCall
+%type <expr> expression literals boolLiteral
 
 %start program
 
@@ -285,7 +288,11 @@ statement: 			loop
 													yyerror("Continue fuera de bucle");
 												}
 												}
-|					RETURN expression ';';	// FIXME free reg_tipo
+|					RETURN expression ';'		{
+													
+													lib_reg($2);
+												};	
+												
 /* returnExpression */
 
 
@@ -448,20 +455,20 @@ varAssign: 	ID '=' expression				{
 
 /********* REGLAS DECLARACIÓN DE VARIABLES *********/
 variabledcl:	typePrimitive ID '=' expression ';' 	{																																						
-																										r7Displacement++;
-																										adde($2, $1, (scope == 0) ? global : local, scope, (r7Displacement * 4), NULL);
-																										
-																										snprintf(line, lineSize, "\tR7 = R7 - 4;\t\t\t// Reservamos espacio en pila para la variable %s l:%d\n", $2, numlin);
-																										gc(line);
-																										if($4->tipo != comaFlotante) {
-																											snprintf(line, lineSize, "\tI(R6 - %d) = R%d;\t\t\t// Declaramos la variable %s l:%d\n", 4 * r7Displacement, $4->reg, $2, numlin);
-																										} else {
-																											snprintf(line, lineSize, "\tI(R6 - %d) = RR%d;\t\t\t// Declaramos la variable %s l:%d\n", 4 * r7Displacement, $4->reg, $2, numlin);
-																										}
-																										gc(line);
-																										
-																										lib_reg($4);
-																										}
+															r7Displacement++;
+															adde($2, $1, (scope == 0) ? global : local, scope, (r7Displacement * 4), NULL);
+															
+															snprintf(line, lineSize, "\tR7 = R7 - 4;\t\t\t// Reservamos espacio en pila para la variable %s l:%d\n", $2, numlin);
+															gc(line);
+															if($4->tipo != comaFlotante) {
+																snprintf(line, lineSize, "\tI(R6 - %d) = R%d;\t\t\t// Declaramos la variable %s l:%d\n", 4 * r7Displacement, $4->reg, $2, numlin);
+															} else {
+																snprintf(line, lineSize, "\tI(R6 - %d) = RR%d;\t\t\t// Declaramos la variable %s l:%d\n", 4 * r7Displacement, $4->reg, $2, numlin);
+															}
+															gc(line);
+															
+															lib_reg($4);
+														}
 |					STRING ID '=' LIT_STRING ';'
 |					arraydcl;
 
@@ -471,12 +478,12 @@ variabledcl:	typePrimitive ID '=' expression ';' 	{
 
 /********* REGLAS DECLARACIÓN DE ARRAY *********/
 arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' {
-																		if ($3 < 0) yyerror("Una array no puede tener un número de elementos negativo");
-																		struct array *arr = malloc(sizeof(struct array));
-																		arr->length = $3;
-																		arr->address = getAddress($1, arr->length);
-																		adde($5, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), arr);
-																		}
+															if ($3 < 0) yyerror("Una array no puede tener un número de elementos negativo");
+															struct array *arr = malloc(sizeof(struct array));
+															arr->length = $3;
+															arr->address = getAddress($1, arr->length);
+															adde($5, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), arr);
+														}
 |					typePrimitive '[' ']' ID '=' ID ';' {
 																		struct nodo* puntero = find($6);
 																		if (puntero == NULL){
@@ -511,20 +518,27 @@ array:		{longitud_array++;} expression				{if($2->tipo != tipo_array) yyerror("E
 // TODO comprobar uno a uno si los operadores son correctos y funcionan en q
 // FIXME string 
 /********* REGLAS EXPRESIONES *********/
-expression:	functionCall									{
-																					if ($1->tipo == vacio) yyerror("Una funcion void no devuelve parametro");
-																					struct reg_tipo *ex = $1;
-																					$$ = $1;
-																					}
-|					ID '[' LIT_INT ']'							{
-																					struct nodo *puntero = find($1);
-																					if (puntero->array == NULL) yyerror("La ID no es una array");
-																					int reg = assign_reg(puntero->tipo);
-																					struct reg_tipo *ex =  malloc(sizeof(struct reg_tipo));
-																					ex->reg = reg;
-																					ex->tipo = puntero->tipo; // FIXME if array it should return caracter, not ristra
-																					// TODO collect from array
-																					}
+expression:	functionCall									{	
+																struct nodo *puntero = search($1, funcion);
+
+																if (puntero->tipo == vacio) yyerror("Una funcion void no devuelve valor.");
+																
+																struct reg_tipo *ex = malloc(sizeof(struct reg_tipo));
+																ex->reg = 0;
+																ex->tipo = puntero->tipo;
+																printf("%d %d", ex->reg, ex->tipo);
+																
+																$$ = ex;
+															}
+|					ID '[' LIT_INT ']'						{
+																struct nodo *puntero = find($1);
+																if (puntero->array == NULL) yyerror("La ID no es una array");
+																int reg = assign_reg(puntero->tipo);
+																struct reg_tipo *ex =  malloc(sizeof(struct reg_tipo));
+																ex->reg = reg;
+																ex->tipo = puntero->tipo; // FIXME if array it should return caracter, not ristra
+																// TODO collect from array
+															}
 |					ID															{
 																					struct nodo *puntero = find($1);
 																					if (puntero->array != NULL) yyerror("La ID es una array");
@@ -679,6 +693,8 @@ functionCall: 		ID {
 																	
 																	functionNumberParam = -1;
 																	functionName = "";
+
+																	$$ = $1;
 																};		
 
 paramsFunctionCallWrapper: 	/* empty */																										
