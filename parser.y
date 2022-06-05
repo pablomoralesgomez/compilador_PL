@@ -153,7 +153,7 @@ header: 			/* empty */
 headerWrapper: 		/* empty */
 |					headerWrapper headerdcl;
 
-headerdcl: 			typeFunction ID {adde($2, $1, funcion, 0, -1, NULL);} '(' paramWrapper ')' ';';
+headerdcl: 			typeFunction ID {adde($2, $1, funcion, 0, getTag(), NULL);} '(' paramWrapper ')' ';';
 
 paramWrapper: 		/* empty */
 |					paramWrapperRecursive  {
@@ -166,7 +166,7 @@ paramWrapperRecursive: {checkingParamNumber++;} param
 
 param:				typeVariable ID									{	
 																		if(functionName[0] == '\0') {
-																			adde($2, $1, param, 0, getAddress($1, 1), NULL);
+																			adde($2, $1, param, 0, checkingParamNumber*4, NULL);
 																		} else {
 																			struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
 																			
@@ -200,21 +200,61 @@ functiondcl: 		typeFunction ID {functionName = $2; functionNumberParam = countFu
 											struct nodo *puntero = search($2, funcion);
 											if(puntero == NULL) yyerror("La funcion no esta declarada en el header");
 											if($1 != puntero->tipo) yyerror("El tipo de la funcion no corresponde con la del header");
-									
+
+											snprintf(line, lineSize, "\n// Funcion %s\n L %d:\tR6 = R7 + %d\t\t\t// Situamos R6 justo encima de los parametros y debajo de la etiqueta de regreso y la antigua posicion de R6 l:%d\n", puntero->id, puntero->address, functionNumberParam*4, numlin);
+											gc(line);
+											
 											puntero = puntero->param;
 											while(puntero != NULL) {
 												adde(puntero->id, puntero->tipo, local, scope, puntero->address, puntero->array); // FIXME cuando es array el tipo no es el del puntero, sino entero
 												
 												puntero = puntero->param;
 											}
+												
+											$<int1>$ = r7Displacement;
+											r7Displacement = functionNumberParam;
 											
 											functionNumberParam = -1;
 											functionName = "";
 										}
 															
-										statementWrapper '}'					{deleteScope(scope);};
+										statementWrapper '}'					{
+																					snprintf(line, lineSize, "\tR7 = R6\t\t\t\t// Eliminamos todas las variables locales y los param de pila l:%d\n", numlin);
+																					gc(line);
+																					
+																					snprintf(line, lineSize, "\tR6 = P(R7 + 4)\t\t\t// Devolvemos R6 a su posicion previa l:%d\n", numlin);
+																					gc(line);
+																					
+																					snprintf(line, lineSize, "\tR5 = P(R7)\t\t\t// Recogemos el valor de la etiqueta para regresar a la rutina anterior l:%d\n", numlin);
+																					gc(line);
+																					
+																					snprintf(line, lineSize, "\tGT(R5)\t\t\t\t// Volvemos a la rutina anterior l:%d\n", numlin);
+																					gc(line);
+																					
+																					r7Displacement = $<int1>8;
+																					
+																					deleteScope(scope);
+																				};
 
-main:           	INT MAIN '(' ')' '{' statementWrapper '}'					{deleteScope(scope);};
+main:           	INT MAIN '(' ')' '{' 
+					
+					{	
+						snprintf(line, lineSize, "\n// Funcion main\n");
+						gc(line);
+						
+						snprintf(line, lineSize, "L 0:\tR6 = R7;\t\t\t// Inicio del programa\n");
+						gc(line);
+					}	
+					
+					statementWrapper '}'					{
+																snprintf(line, lineSize, "\tR0 = 0;\t\t\t\t// Exito\n");
+																gc(line);
+																
+																snprintf(line, lineSize, "\tGT(-2);\t\t\t\t// Fin del programa\n");
+																gc(line);
+																
+																deleteScope(scope);
+															};
 
 
 
@@ -405,16 +445,17 @@ varAssign: 	ID '=' expression				{
 
 
 /********* REGLAS DECLARACIÓN DE VARIABLES *********/
-variabledcl:	typePrimitive ID '=' expression ';' 	{												/*adde($2, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), NULL);
-																										snprintf(line,lineSize, "\t//ID initialization: %s - l:%d\n",$2, numlin);
-																										gc(line);// FIXME free reg_tipo*/
-																										
+variabledcl:	typePrimitive ID '=' expression ';' 	{																																						
 																										r7Displacement++;
-																										adde($2, $1, (scope == 0) ? global : local, scope, +(r7Displacement * 4), NULL);
+																										adde($2, $1, (scope == 0) ? global : local, scope, (r7Displacement * 4), NULL);
 																										
-																										snprintf(line, lineSize, "\tR7 = R7 - %d\n", 4 * r7Displacement);
+																										snprintf(line, lineSize, "\tR7 = R7 - 4;\t\t\t// Reservamos espacio en pila para la variable %s l:%d\n", $2, numlin);
 																										gc(line);
-																										snprintf(line, lineSize, "\tI(R6 - %d) = R%d\n", 4 * r7Displacement, $4->reg);
+																										if($4->tipo != comaFlotante) {
+																											snprintf(line, lineSize, "\tI(R6 - %d) = R%d;\t\t\t// Declaramos la variable %s l:%d\n", 4 * r7Displacement, $4->reg, $2, numlin);
+																										} else {
+																											snprintf(line, lineSize, "\tI(R6 - %d) = RR%d;\t\t\t// Declaramos la variable %s l:%d\n", 4 * r7Displacement, $4->reg, $2, numlin);
+																										}
 																										gc(line);
 																										
 																										lib_reg($4);
@@ -490,10 +531,10 @@ expression:	functionCall									{
 																					ex->reg = reg;
 																					ex->tipo = puntero->tipo;
 																					if (puntero->tipo == comaFlotante){
-																						snprintf(line,lineSize, "\tRR%d = I(R6 - %d);  //evaluate %s %d\n", reg, puntero->address, $1, numlin);
+																						snprintf(line,lineSize, "\tRR%d = I(R6 - %d);\t\t// evaluate %s l:%d\n", reg, puntero->address, $1, numlin);
 																						gc(line);
 																					}else{
-																						snprintf(line,lineSize, "\tR%d = I(R6 - %d);  //evaluate %s %d\n", reg, puntero->address, $1, numlin);
+																						snprintf(line,lineSize, "\tR%d = I(R6 - %d);\t\t\t// evaluate %s l:%d\n", reg, puntero->address, $1, numlin);
 																						gc(line);
 																					}
 																					$$ = ex;
@@ -610,7 +651,7 @@ boolLiteral:		TRUE								{
 functionCall: 		ID {
 							functionName = $1; functionNumberParam = countFunctionParameters($1);
 
-							snprintf(line,lineSize, "\n\tR7 = R7 - %d\n", (functionNumberParam + 2) * 4);
+							snprintf(line,lineSize, "\tR7 = R7 - %d;\t\t\t// Reservamos espacio en pila para los parametros, la etiqueta de regreso y la posicion actual de R6 (llamada a funcion) l:%d\n", (functionNumberParam + 2) * 4, numlin);
 							gc(line);
 						}
 					
@@ -620,13 +661,18 @@ functionCall: 		ID {
 																		yyerror("La funcion no esta declarada en el header");
 																	}
 																	
-																	snprintf(line,lineSize, "\tP(R7 + %d) = R6\n", (functionNumberParam + 1) * 4);
+																	int tag = getTag();
+																	
+																	snprintf(line,lineSize, "\tP(R7 + %d) = R6;\t\t\t// Guardamos la posicion actual de R6 en el espacio reservado l:%d\n", (functionNumberParam + 1) * 4, numlin);
 																	gc(line);	
 																	
-																	snprintf(line,lineSize, "\tP(R7 + %d) = etiqueta\n", (functionNumberParam) * 4);
+																	snprintf(line,lineSize, "\tP(R7 + %d) = %d;\t\t\t// Guardamos la etiqueta de regreso a la rutina actual en el espacio reservado l:%d\n", (functionNumberParam) * 4, tag, numlin);
 																	gc(line);	
 																	
-																	snprintf(line,lineSize, "L et:\tR7 = R7 + %d\n", (functionNumberParam + 2) * 4);
+																	snprintf(line,lineSize, "\tGT(%d);\t\t\t\t// Saltamos a la funcion que se esta llamando l:%d\n", puntero->address, numlin);
+																	gc(line);
+																	
+																	snprintf(line,lineSize, "L %d:\tR7 = R7 + %d;\t\t\t// Recuperamos el resto del espacio reservado para la etiqueta y la posicion de R6 l:%d\n", tag, 8, numlin);
 																	gc(line);	
 																	
 																	functionNumberParam = -1;
@@ -644,13 +690,11 @@ paramsFunctionCall: paramsFunctionCall ',' {checkingParamNumber++;} expression 	
 																						struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
 																						if(param == NULL) yyerror("El numero de parametros no se corresponde con el especificado en el header.");
 																						if($4->tipo != param->tipo) yyerror("El tipo del parametro no corresponde con el del header");	
-																						
-																						param->address = checkingParamNumber * 4;
 
 																						if($4->tipo != comaFlotante) {
-																							snprintf(line,lineSize, "\tI(R7 + %d) = R%d\n", (checkingParamNumber - 1) * 4, $4->reg);
+																							snprintf(line,lineSize, "\tI(R7 + %d) = R%d;\t\t\t// Guardamos el valor del parametro en el espacio reservado por la pila l:%d\n", (checkingParamNumber - 1) * 4, $4->reg, numlin);
 																						} else {
-																							snprintf(line,lineSize, "\tI(R7 + %d) = RR%d\n", (checkingParamNumber - 1) * 4, $4->reg);
+																							snprintf(line,lineSize, "\tI(R7 + %d) = RR%d;\t\t\t// Guardamos el valor del parametro en el espacio reservado por la pila l:%d\n", (checkingParamNumber - 1) * 4, $4->reg, numlin);
 																						}
 																						gc(line);
 																						
@@ -664,9 +708,9 @@ paramsFunctionCall: paramsFunctionCall ',' {checkingParamNumber++;} expression 	
 																						param->address = checkingParamNumber*4;
 
 																						if($2->tipo != comaFlotante) {
-																							snprintf(line,lineSize, "\tI(R7 + %d) = R%d\n", (checkingParamNumber - 1) * 4, $2->reg);
+																							snprintf(line,lineSize, "\tI(R7 + %d) = R%d;\t\t\t// Guardamos el valor del parametro en el espacio reservado por la pila l:%d\n", (checkingParamNumber - 1) * 4, $2->reg, numlin);
 																						} else {
-																							snprintf(line,lineSize, "\tI(R7 + %d) = RR%d\n", (checkingParamNumber - 1) * 4, $2->reg);
+																							snprintf(line,lineSize, "\tI(R7 + %d) = RR%d;\t\t\t// Guardamos el valor del parametro en el espacio reservado por la pila l:%d\n", (checkingParamNumber - 1) * 4, $2->reg, numlin);
 																						}
 																						gc(line);
 																						
@@ -900,8 +944,9 @@ struct reg_tipo * logicos(struct reg_tipo* izq, struct reg_tipo* der, enum op_lo
 
 
 struct reg_tipo * aritmeticas(struct reg_tipo* izq, struct reg_tipo* der, enum op_aritmeticas operator){
-	snprintf(line,lineSize,"\t// Aritmetica - l:%d\n",numlin);
-	gc(line);
+	snprintf(line,lineSize,"\t\t\t// Aritmetica - l:%d",numlin);
+	char comment[lineSize]; 
+	strcpy(comment, line);
 
 	char op[1];
 	if (operator == sum){
@@ -920,19 +965,19 @@ struct reg_tipo * aritmeticas(struct reg_tipo* izq, struct reg_tipo* der, enum o
 			izq->tipo == entero && der->tipo == entero ||
 			izq->tipo == entero && der->tipo == caracter ||
 			izq->tipo == caracter && der->tipo == entero){
-		snprintf(line,lineSize, "\tR%d=R%d%sR%d;\n",izq->reg,izq->reg,op,der->reg);
+		snprintf(line,lineSize, "\tR%d=R%d%sR%d;%s\n",izq->reg,izq->reg,op,der->reg, comment);
 		lib_reg(der);
 		res = izq;
 	}else if(izq->tipo == comaFlotante && der->tipo == comaFlotante){
-		snprintf(line,lineSize, "\tRR%d=RR%d%sRR%d;\n",izq->reg,izq->reg,op,der->reg);
+		snprintf(line,lineSize, "\tRR%d=RR%d%sRR%d;%s\n",izq->reg,izq->reg,op,der->reg, comment);
 		lib_reg(der);
 		res = izq;
 	}else if(izq->tipo == comaFlotante && der->tipo == entero){
-		snprintf(line,lineSize, "\tRR%d=RR%d%sR%d;\n",izq->reg,izq->reg,op,der->reg);
+		snprintf(line,lineSize, "\tRR%d=RR%d%sR%d;%s\n",izq->reg,izq->reg,op,der->reg, comment);
 		lib_reg(der);
 		res = izq;
 	}else if(izq->tipo == entero && der->tipo == comaFlotante){
-		snprintf(line,lineSize, "\tRR%d=R%d%sRR%d;\n",der->reg,izq->reg,op,der->reg);
+		snprintf(line,lineSize, "\tRR%d=R%d%sRR%d;%s\n",der->reg,izq->reg,op,der->reg, comment);
 		lib_reg(izq);
 		res = der;
 	}else{
