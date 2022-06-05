@@ -352,6 +352,8 @@ whileLoop: 	{$<int1>$ = co;}//1 									//Store previous continue tag
 						{
 						co = $<int1>1;	// Retrieve previous continue tag
 						br = $<int1>2;	// Retrieve previous break tag
+						snprintf(line,lineSize, "\tGT(%d); // while repeat - l:%d\n", $<int1>3,numlin);
+						gc(line);
 						snprintf(line,lineSize, "L %d: // while bre - l:%d\n", $<int1>4,numlin);
 						gc(line);
 						deleteScope(scope);
