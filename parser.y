@@ -547,10 +547,10 @@ expression:	functionCall									{
 																					ex->reg = reg;
 																					ex->tipo = puntero->tipo;
 																					if (puntero->tipo == comaFlotante){
-																						snprintf(line,lineSize, "\tRR%d = I(R6 - %d);\t\t// evaluate %s l:%d\n", reg, puntero->address, $1, numlin);
+																						snprintf(line,lineSize, "\tRR%d = I(R6 - %d);\t\t// evaluate %s - l:%d\n", reg, puntero->address, $1, numlin);
 																						gc(line);
 																					}else{
-																						snprintf(line,lineSize, "\tR%d = I(R6 - %d);\t\t\t// evaluate %s l:%d\n", reg, puntero->address, $1, numlin);
+																						snprintf(line,lineSize, "\tR%d = I(R6 - %d);\t\t\t// evaluate %s - l:%d\n", reg, puntero->address, $1, numlin);
 																						gc(line);
 																					}
 																					$$ = ex;
@@ -593,10 +593,10 @@ expression:	functionCall									{
 																					$$ = igualdades($1, $3, menor);
 																					}
 |					expression OR expression				{
-																					$$ = igualdades($1, $3, or);
+																					$$ = logicos($1, $3, or);
 																					}
 |					expression AND expression 			{
-																					$$ = igualdades($1, $3, and);
+																					$$ = logicos($1, $3, and);
 																					}
 |					expression '+' expression 			{
 																					$$ = aritmeticas($1, $3, sum);
@@ -618,7 +618,7 @@ literals: 			LIT_INT							{
 																		struct reg_tipo *res =  malloc(sizeof(struct reg_tipo));
 																		res->reg = reg;
 																		res->tipo = entero;
-																		snprintf(line,lineSize, "\tR%d = %ld;\n",reg, $1);
+																		snprintf(line,lineSize, "\tR%d = %ld;\t\t\t\t\t// LIT INT - l:%d\n",reg, $1,numlin);
 																		gc(line);
 																		$$ = res;
 																		}
@@ -627,7 +627,7 @@ literals: 			LIT_INT							{
 																		struct reg_tipo *res =  malloc(sizeof(struct reg_tipo));
 																		res->reg = reg;
 																		res->tipo = comaFlotante;
-																		snprintf(line,lineSize, "\tRR%d = %f;\n",reg, $1);
+																		snprintf(line,lineSize, "\tRR%d = %f;\t\t\t\t// LIT FLOAT - l:%d\n",reg, $1,numlin);
 																		gc(line);
 																		$$ = res;
 																		}
@@ -636,7 +636,7 @@ literals: 			LIT_INT							{
 																		struct reg_tipo *res =  malloc(sizeof(struct reg_tipo));
 																		res->reg = reg;
 																		res->tipo = caracter;
-																		snprintf(line,lineSize, "\tR%d = %d;\n",reg, $1);
+																		snprintf(line,lineSize, "\tR%d = %d;\t\t\t\t// LIT CHAR - l:%d\n",reg, $1,numlin);
 																		gc(line);
 																		$$ = res;
 																		}
@@ -647,7 +647,7 @@ boolLiteral:		TRUE								{
 																		struct reg_tipo *res =  malloc(sizeof(struct reg_tipo));
 																		res->reg = reg;
 																		res->tipo = boolean;
-																		snprintf(line,lineSize, "\tR%d = 1;\n",reg);
+																		snprintf(line,lineSize, "\tR%d = 1;\t\t\t\t\t// LIT TRUE - l:%d\n",reg,numlin);
 																		gc(line);
 																		$$ = res;
 																		}
@@ -656,7 +656,7 @@ boolLiteral:		TRUE								{
 																		struct reg_tipo *res =  malloc(sizeof(struct reg_tipo));
 																		res->reg = reg;
 																		res->tipo = boolean;
-																		snprintf(line,lineSize, "\tR%d = 0;\n",reg);
+																		snprintf(line,lineSize, "\tR%d = 0;\t\t\t\t\t// LIT FALSE - l:%d\n",reg,numlin);
 																		gc(line);
 																		$$ = res;
 																		};
@@ -843,8 +843,8 @@ int main(int argc, char** argv) {
 		int_regs[i] = false;
 	}
 
-	char charSize = 'a';
-	lineSize = sizeof(charSize)*300;
+
+	lineSize = sizeof(char)*300;
 	line = malloc(lineSize);
 
   if(argc == 2) {
@@ -873,8 +873,8 @@ int main(int argc, char** argv) {
 // Funciones auxiliares
 
 struct reg_tipo * igualdades(struct reg_tipo* izq, struct reg_tipo* der, enum op_igualdades operator){
-	snprintf(line,lineSize,"\t// Igualdad - l:%d\n",numlin);
-	gc(line);
+	char *comment = malloc(lineSize);
+	snprintf(comment,lineSize,"\t\t\t// Igualdad - l:%d",numlin);
 
 	char op[2];
 	if (operator == igual){
@@ -905,12 +905,12 @@ struct reg_tipo * igualdades(struct reg_tipo* izq, struct reg_tipo* der, enum op
 			izq->tipo == entero && der->tipo == caracter ||
 			izq->tipo == caracter && der->tipo == entero ||
 			izq->tipo == boolean && der->tipo == boolean){
-		snprintf(line,lineSize, "\tR%d=R%d%sR%d;\n",izq->reg,izq->reg,op,der->reg);
+		snprintf(line,lineSize, "\tR%d=R%d%sR%d;%s\n",izq->reg,izq->reg,op,der->reg,comment);
 		lib_reg(der);
 		res = izq;
 	}else if(izq->tipo == comaFlotante && der->tipo == comaFlotante){
 		int reg = assign_reg(entero);
-		snprintf(line,lineSize, "\tR%d=RR%d%sRR%d;\n",reg ,izq->reg,op,der->reg); // FIXME get register
+		snprintf(line,lineSize, "\tR%d=RR%d%sRR%d;%s\n",reg ,izq->reg,op,der->reg,comment); // FIXME get register
 		lib_reg(der);
 		lib_reg(izq);
 		struct reg_tipo *aux =  malloc(sizeof(struct reg_tipo));
@@ -918,11 +918,11 @@ struct reg_tipo * igualdades(struct reg_tipo* izq, struct reg_tipo* der, enum op
 		aux->tipo = boolean;
 		res = aux;
 	}else if(izq->tipo == comaFlotante && der->tipo == entero){
-		snprintf(line,lineSize, "\tR%d=RR%d%sR%d;\n",der->reg,izq->reg,op,der->reg);
+		snprintf(line,lineSize, "\tR%d=RR%d%sR%d;%s\n",der->reg,izq->reg,op,der->reg,comment);
 		lib_reg(izq);
 		res = der;
 	}else if(izq->tipo == entero && der->tipo == comaFlotante){
-		snprintf(line,lineSize, "\tR%d=R%d%sRR%d;\n",izq->reg,izq->reg,op,der->reg);
+		snprintf(line,lineSize, "\tR%d=R%d%sRR%d;%s\n",izq->reg,izq->reg,op,der->reg,comment);
 		lib_reg(der);
 		res = izq;
 	}else{
@@ -930,13 +930,14 @@ struct reg_tipo * igualdades(struct reg_tipo* izq, struct reg_tipo* der, enum op
 	}
 	res->tipo = boolean;
 	gc(line);
+	free(comment);
 	return res;
 }
 
 
 struct reg_tipo * logicos(struct reg_tipo* izq, struct reg_tipo* der, enum op_logicos operator){
-	snprintf(line,lineSize,"\t// Logico - l:%d\n",numlin);
-	gc(line);
+	char *comment = malloc(lineSize);
+	snprintf(comment,lineSize,"\t\t\t// Logico - l:%d",numlin);
 
 	char op[2];
 	if (operator == and){
@@ -949,7 +950,7 @@ struct reg_tipo * logicos(struct reg_tipo* izq, struct reg_tipo* der, enum op_lo
 
 	struct reg_tipo* res;
 	if (izq->tipo == boolean && der->tipo == boolean){
-		snprintf(line,lineSize, "\tR%d=R%d%sR%d;\n",izq->reg,izq->reg,op,der->reg);
+		snprintf(line,lineSize, "\tR%d=R%d%sR%d;%s\n",izq->reg,izq->reg,op,der->reg,comment);
 		lib_reg(der);
 		res = izq;
 	}else{
@@ -962,9 +963,9 @@ struct reg_tipo * logicos(struct reg_tipo* izq, struct reg_tipo* der, enum op_lo
 
 
 struct reg_tipo * aritmeticas(struct reg_tipo* izq, struct reg_tipo* der, enum op_aritmeticas operator){
-	snprintf(line,lineSize,"\t\t\t// Aritmetica - l:%d",numlin);
-	char comment[lineSize]; 
-	strcpy(comment, line);
+	char *comment = malloc(lineSize);
+	snprintf(comment,lineSize,"\t\t\t// Aritmetica - l:%d",numlin);
+
 
 	char op[1];
 	if (operator == sum){
@@ -1002,12 +1003,13 @@ struct reg_tipo * aritmeticas(struct reg_tipo* izq, struct reg_tipo* der, enum o
 		yyerror("Fallo en aritméticas, asegúrese de que usa tipos correctos");
 	}
 	gc(line);
+	free(comment);
 	return res;
 }
 
 int asignaciones(struct reg_tipo* reg, char* id, enum op_asignaciones operator){
-	snprintf(line,lineSize,"\t// Assign %s - l:%d\n",id,numlin);
-	gc(line);
+	char *comment = malloc(lineSize);
+	snprintf(comment,lineSize,"\t\t\t// Asignaciones - l:%d",numlin);
 
 	struct nodo *puntero = find(id);
 
@@ -1020,12 +1022,12 @@ int asignaciones(struct reg_tipo* reg, char* id, enum op_asignaciones operator){
 	char op[1];
 	if (operator == aigual){	// FIXME string
 		if (reg->tipo == comaFlotante){
-			snprintf(line,lineSize,"\tR%d=0x%05d;\n", address_reg->reg, puntero->address);
+			snprintf(line,lineSize,"\tR%d=0x%05d;%s\n", address_reg->reg, puntero->address,comment);
 			gc(line);
 			snprintf(line,lineSize,"\tI(R%d)=RR%d;\n", address_reg->reg, reg->reg);
 			gc(line);
 		}else{
-			snprintf(line,lineSize,"\tR%d=0x%05d;\n", address_reg->reg, puntero->address);
+			snprintf(line,lineSize,"\tR%d=0x%05d;%s\n", address_reg->reg, puntero->address,comment);
 			gc(line);
 			snprintf(line,lineSize,"\tI(R%d)=R%d;\n", address_reg->reg, reg->reg);
 			gc(line);
@@ -1033,6 +1035,7 @@ int asignaciones(struct reg_tipo* reg, char* id, enum op_asignaciones operator){
 		lib_reg(address_reg);
 		lib_reg(reg);
 
+		free(comment);
 		return 0;
 	}else{
 		if (operator == asum){
@@ -1055,7 +1058,7 @@ int asignaciones(struct reg_tipo* reg, char* id, enum op_asignaciones operator){
 
 	if(puntero->tipo == entero && reg->tipo == entero){
 		// Recogemos direccion en registro direccion
-		snprintf(line,lineSize,"\tR%d=0x%05d;\n", address_reg->reg, puntero->address);
+		snprintf(line,lineSize,"\tR%d=0x%05d;%s\n", address_reg->reg, puntero->address,comment);
 		gc(line);
 		// Guardamos valor de la direccion (usando el registro direccion) en el registro valor
 		snprintf(line,lineSize,"\tR%d=I(R%d);\n", val->reg, address_reg->reg);
@@ -1068,7 +1071,7 @@ int asignaciones(struct reg_tipo* reg, char* id, enum op_asignaciones operator){
 		gc(line);
 	}else if(puntero->tipo == comaFlotante && reg->tipo == comaFlotante){
 		// Recogemos direccion en registro direccion
-		snprintf(line,lineSize,"\tR%d=0x%05d;\n", address_reg->reg, puntero->address);
+		snprintf(line,lineSize,"\tR%d=0x%05d;%s\n", address_reg->reg, puntero->address,comment);
 		gc(line);
 		// Guardamos valor de la direccion (usando el registro direccion) en el registro valor
 		snprintf(line,lineSize,"\tRR%d=I(R%d);\n", val->reg, address_reg->reg);
@@ -1081,7 +1084,7 @@ int asignaciones(struct reg_tipo* reg, char* id, enum op_asignaciones operator){
 		gc(line);
 	}else if(puntero->tipo == entero && reg->tipo == comaFlotante){
 		// Recogemos direccion en registro direccion
-		snprintf(line,lineSize,"\tR%d=0x%05d;\n", address_reg->reg, puntero->address);
+		snprintf(line,lineSize,"\tR%d=0x%05d;%s\n", address_reg->reg, puntero->address,comment);
 		gc(line);
 		// Guardamos valor de la direccion (usando el registro direccion) en el registro valor
 		snprintf(line,lineSize,"\tR%d=I(R%d);\n", val->reg, address_reg->reg);
@@ -1094,7 +1097,7 @@ int asignaciones(struct reg_tipo* reg, char* id, enum op_asignaciones operator){
 		gc(line);
 	}else if(puntero->tipo == comaFlotante && reg->tipo == entero){
 		// Recogemos direccion en registro direccion
-		snprintf(line,lineSize,"\tR%d=0x%05d;\n", address_reg->reg, puntero->address);
+		snprintf(line,lineSize,"\tR%d=0x%05d;%s\n", address_reg->reg, puntero->address,comment);
 		gc(line);
 		// Guardamos valor de la direccion (usando el registro direccion) en el registro valor
 		snprintf(line,lineSize,"\tRR%d=I(R%d);\n", val->reg, address_reg->reg);
@@ -1112,5 +1115,7 @@ int asignaciones(struct reg_tipo* reg, char* id, enum op_asignaciones operator){
 	lib_reg(val);
 	lib_reg(address_reg);
 	lib_reg(reg);
+
+	free(comment);
 	return 0;
 }
