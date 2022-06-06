@@ -7,6 +7,7 @@
 #define false 0
 
 struct nodo *primero = NULL;
+unsigned long long z = 0x12000;
 
 void deleteScope(int sc) {
 	
@@ -116,7 +117,27 @@ int add(char* id, enum type tipo, enum category categoria, int scope, int addres
 	return true;
 }
 
+// legnth :
+// -1 for variables
+// 0 or more for arrays
 int getAddress(enum type tipo, int length){
+	int octetos;
+	octetos = 4;
+	/*if (tipo == entero) {
+		octetos = 4;
+	}else if(tipo == caracter){
+		octetos = 1;
+	}else if(tipo == boolean){
+		// We will trean them as chars
+		octetos = 1;
+	}else if(tipo == comaFlotante){
+		octetos = 4;
+	}*/
+
+	if (length == -1){
+		z = z - octetos;
+		return z;
+	}
 	return -2;
 }
 

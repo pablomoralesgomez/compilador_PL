@@ -1,4 +1,7 @@
 	#                     Hey
+global{
+	int p = 1;
+}
 
 header{
 	int sum();
@@ -6,31 +9,13 @@ header{
 	boolean cd(int g, boolean gh);
 }
 
-global{
-	int x = 4;
-	float df = 0.5;
-	char c = ' ';
-	String a = "hola";
-	String b = "halo";
-	int b = 2;
-}
 	
 int main() {
+	int x = 4;
+	int b = 2;
+	int c = 1;
 	boolean test = true;
 	boolean d = test != true;
-	#x = x + df;
-	#x = df == df;
-	#x = 1;
-	#x = 2;
-	#x = 3;
-	#x = x - x;
-	#x = x * x;
-	#x = x / x;
-
-	#x += x;
-	#x += df;
-	#df += x;
-	#df += df;
 	int a = 1;
 	if (true){
 		if (true){

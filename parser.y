@@ -1,6 +1,5 @@
 %{
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include "string.h"
@@ -28,6 +27,8 @@ int tagCount = 1;
 int br = 0;
 int co = 0;
 int fi = 0;
+int stat = 0;
+
 
 int int_regs[1  + 5];
 int float_regs[1 +3];
@@ -62,7 +63,7 @@ int countOccupiedFloatReg();
 void yyerror(char*);
 
 void lib_reg(struct reg_tipo*);
-int assign_reg(int tipo);
+int assign_reg(int);
 void gc(char* text);
 
 void adde(char*, enum type, enum category, int, int , struct array*);
@@ -71,6 +72,7 @@ struct reg_tipo * logicos(struct reg_tipo*, struct reg_tipo*, enum op_logicos);
 struct reg_tipo * aritmeticas(struct reg_tipo*, struct reg_tipo*, enum op_aritmeticas);
 int asignaciones(struct reg_tipo*, char*, enum op_asignaciones);
 int getTag();
+char getLetter(enum type);
 
 struct nodo * find(char* id);
 
@@ -154,7 +156,7 @@ struct nodo * find(char* id);
 
 %%	/********* REGLAS GRAMATICALES *********/
 
-program: 			header global functionArea;
+program: 			global header functionArea;
 
 
 /********* REGLAS DEL HEADER *********/
@@ -172,18 +174,18 @@ paramWrapper: 		/* empty */
 												checkingParamNumber = 0;
 											};
 
-paramWrapperRecursive: {checkingParamNumber++;} param 
+paramWrapperRecursive: {checkingParamNumber++;} param
 |					paramWrapperRecursive ',' {checkingParamNumber++;} param;
 
-param:				typeVariable ID									{	
+param:				typeVariable ID									{
 																		if(functionName[0] == '\0') {
 																			adde($2, $1, param, 0, checkingParamNumber*4, NULL);
 																		} else {
 																			struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
-																			
+
 																			if(param == NULL) yyerror("El parametro o la funcion no esta declarado en el header.");
-																			if($1 != param->tipo) yyerror("El tipo del parametro no corresponde con el del header");	
-																			if(strcmp($2, param->id) != 0) yyerror("El nombre del parametro no corresponde con el del header");	
+																			if($1 != param->tipo) yyerror("El tipo del parametro no corresponde con el del header");
+																			if(strcmp($2, param->id) != 0) yyerror("El nombre del parametro no corresponde con el del header");
 																		}
 																	}
 |					typePrimitive '[' ']' ID;						/* TODO: AÑADIR ARRAYS A LA PILA */
@@ -214,21 +216,20 @@ functiondcl: 		typeFunction ID {functionName = $2; functionNumberParam = countFu
 
 											snprintf(line, lineSize, "\n// Funcion %s\n L %d:\tR6 = R7 + %d;\t\t\t// Situamos R6 justo encima de los parametros y debajo de la etiqueta de regreso y la antigua posicion de R6 - l:%d\n", puntero->id, puntero->address, functionNumberParam*4, numlin);
 											gc(line);
-											
+
 											puntero = puntero->param;
 											while(puntero != NULL) {
 												adde(puntero->id, puntero->tipo, local, scope, puntero->address, puntero->array); // FIXME cuando es array el tipo no es el del puntero, sino entero
-												
+
 												puntero = puntero->param;
 											}
-												
+
 											$<int1>$ = r7Displacement;
 											r7Displacement = functionNumberParam;
-											
+
 											functionNumberParam = -1;
 											functionName = "";
 										}
-															
 										statementWrapper '}'					{	
 																					if(returnCount > 0 && $1 == vacio) yyerror("Las funciones tipo void no permiten el uso de return.");	
 																					if(returnCount < 1 && $1 != vacio) yyerror("La funcion no retorna ningún valor.");
@@ -252,32 +253,31 @@ functiondcl: 		typeFunction ID {functionName = $2; functionNumberParam = countFu
 																					
 																					snprintf(line, lineSize, "\tGT(R0);\t\t\t\t// Volvemos a la rutina anterior - l:%d\n", numlin);
 																					gc(line);
-																					
+
 																					r7Displacement = $<int1>8;
-																					
 																					funcTipo = -1;
 																					returnCount = -1;
 																					returnScope1 = false;
 																					deleteScope(scope);
 																				};
 
-main:           	INT MAIN '(' ')' '{' 
-					
-					{	
+main:           	INT MAIN '(' ')' '{'
+
+					{
 						snprintf(line, lineSize, "\n// Funcion main\n");
 						gc(line);
-						
+
 						snprintf(line, lineSize, "L 0:\tR6 = R7;\t\t\t// Inicio del programa\n");
 						gc(line);
-					}	
-					
+					}
+
 					statementWrapper '}'					{
 																snprintf(line, lineSize, "\tR0 = 0;\t\t\t\t// Exito\n");
 																gc(line);
-																
+
 																snprintf(line, lineSize, "\tGT(-2);\t\t\t\t// Fin del programa\n");
 																gc(line);
-																
+
 																deleteScope(scope);
 															};
 
@@ -295,23 +295,24 @@ statement: 			loop
 |					varAssign ';'
 |					BREAK ';'			{
 												if (br){
-													snprintf(line,lineSize, "\tGT(%d) //break- l:%d\n", br,numlin);
+													snprintf(line,lineSize, "\tGT(%d);\t\t\t\t// break- l:%d\n", br,numlin);
 													gc(line);
 												}else{
 													yyerror("Break fuera de bucle");
 												}
 												}
-|					PRINT '(' printeableThings ')' ';'
+|					PRINT '(' printeableThings ')' ';' {
+																							
+																							}
 |					CONTINUE ';'	{
 												if (co){
-													snprintf(line,lineSize, "\tGT(%d) //continue - l:%d\n", co,numlin);
+													snprintf(line,lineSize, "\tGT(%d);\t\t\t\t// continue - l:%d\n", co,numlin);
 													gc(line);
 												}else{
 													yyerror("Continue fuera de bucle");
 												}
 												}
 |					RETURN expression ';'		{
-													
 													if(funcTipo != $2->tipo) yyerror("El tipo de la funcion no se corresponde con el que se desea retornar.");
 													if(scope == 1) returnScope1 = true;
 													returnCount++;
@@ -334,10 +335,9 @@ statement: 			loop
 													
 													snprintf(line, lineSize, "\tGT(R0);\t\t\t\t// Volvemos a la rutina anterior - l:%d\n", numlin);
 													gc(line);
-													
 													lib_reg($2);
-												};	
-												
+												};
+
 /* returnExpression */
 
 
@@ -358,7 +358,7 @@ forLoop: 	{$<int1>$ = co;}//1 								//Store previous continue tag
 					//5		6			7					8						9
 					FOR '(' {scope++;} variabledcl {scope--;}
 					{
-					snprintf(line,lineSize, "L %d: //for con - l:%d\n", $<int1>3,numlin);
+					snprintf(line,lineSize, "L %d:\t\t\t\t\t\t// for con - l:%d\n", $<int1>3,numlin);
 					gc(line);
 					}// 10
 					// 11				12
@@ -367,7 +367,7 @@ forLoop: 	{$<int1>$ = co;}//1 								//Store previous continue tag
 					if ($11->tipo != boolean){
 						yyerror("La expresión del bucle no es booleana");
 					}
-					snprintf(line,lineSize, "\tIF (!R%d) GT(%d); //for bool - l:%d\n",$11->reg, $<int1>4,numlin);
+					snprintf(line,lineSize, "\tIF (!R%d) GT(%d); // for bool - l:%d\n",$11->reg, $<int1>4,numlin);
 					gc(line);
 					lib_reg($11);
 					}//13
@@ -376,9 +376,9 @@ forLoop: 	{$<int1>$ = co;}//1 								//Store previous continue tag
 					{
 					co = $<int1>1;	// Retrieve previous continue tag
 					br = $<int1>2;	// Retrieve previous break tag
-					snprintf(line,lineSize, "L %d: //for bre - l:%d\n", $<int1>4,numlin);
+					snprintf(line,lineSize, "L %d:\t\t\t\t\t\t// for bre - l:%d\n", $<int1>4,numlin);
 					gc(line);
-					
+
 					deleteScope(scope);
 					};
 
@@ -387,7 +387,7 @@ whileLoop: 	{$<int1>$ = co;}//1 									//Store previous continue tag
 						{co = getTag(); $<int1>$ = co;}//3		//Store current continue tag
 						{br = getTag(); $<int1>$ = br;}//4		//Store current break tag
 						{
-						snprintf(line,lineSize, "L %d: //while con - l:%d\n", $<int1>3,numlin);
+						snprintf(line,lineSize, "L %d:\t\t\t\t\t\t// while con - l:%d\n", $<int1>3,numlin);
 						gc(line);
 						}//5
 						//6			7			8				9
@@ -396,7 +396,7 @@ whileLoop: 	{$<int1>$ = co;}//1 									//Store previous continue tag
 						if ($8->tipo != boolean){
 							yyerror("La expresión del bucle no es booleana");
 						}
-						snprintf(line,lineSize, "\tIF (!R%d) GT(%d); //while bool - l:%d\n",$8->reg, $<int1>4,numlin);
+						snprintf(line,lineSize, "\tIF (!R%d) GT(%d);\t\t\t// while bool - l:%d\n",$8->reg, $<int1>4,numlin);
 						gc(line);
 						lib_reg($8);
 						}
@@ -404,9 +404,9 @@ whileLoop: 	{$<int1>$ = co;}//1 									//Store previous continue tag
 						{
 						co = $<int1>1;	// Retrieve previous continue tag
 						br = $<int1>2;	// Retrieve previous break tag
-						snprintf(line,lineSize, "\tGT(%d); // while repeat - l:%d\n", $<int1>3,numlin);
+						snprintf(line,lineSize, "\tGT(%d);\t\t\t\t// while repeat - l:%d\n", $<int1>3,numlin);
 						gc(line);
-						snprintf(line,lineSize, "L %d: // while bre - l:%d\n", $<int1>4,numlin);
+						snprintf(line,lineSize, "L %d:\t\t\t\t\t\t// while bre - l:%d\n", $<int1>4,numlin);
 						gc(line);
 						deleteScope(scope);
 						};
@@ -416,13 +416,13 @@ whileLoop: 	{$<int1>$ = co;}//1 									//Store previous continue tag
 /********* REGLAS DECLARACIÓN DE CONDICIONALES*********/
 conditional: 	{$<int1>$ = fi;}//1 								//Store previous if tag
 							{fi = getTag(); $<int1>$ = fi;}//2	//Store current if tag
-							{snprintf(line,lineSize, "//if start - l:%d\n",numlin);gc(line);}
+							{snprintf(line,lineSize, "\t\t\t\t\t\t// if start - l:%d\n",numlin);gc(line);}
 
 							ifCond elifCond elseCond
-							
+
 							{
 							fi = $<int1>1;	// Retrieve previous if tag
-							snprintf(line,lineSize, "L %d: //if exit - l:%d\n", $<int1>2,numlin);
+							snprintf(line,lineSize, "L %d:\t\t\t\t\t\t// if exit - l:%d\n", $<int1>2,numlin);
 							gc(line);
 							};
 
@@ -432,41 +432,41 @@ ifCond: 			{$<int1>$ = getTag();}	// if not
 							if ($4->tipo != boolean){
 								yyerror("La expresión del if no es booleana");
 							}
-							snprintf(line,lineSize, "\tIF (!R%d) GT(%d); //if bool - l:%d\n",$4->reg, $<int1>1,numlin);
+							snprintf(line,lineSize, "\tIF (!R%d) GT(%d);\t\t\t// if bool - l:%d\n",$4->reg, $<int1>1,numlin);
 							gc(line);
 							lib_reg($4);
 							}
-							'{' statementWrapper 
+							'{' statementWrapper
 							{
-							snprintf(line,lineSize, "\tGT(%d); //exit if - l:%d\n",fi,numlin);
+							snprintf(line,lineSize, "\tGT(%d);\t\t\t\t// exit if - l:%d\n",fi,numlin);
 							gc(line);
 							}
 							'}'
 							{
-							snprintf(line,lineSize, "L %d: //if not - l:%d\n", $<int1>1,numlin);
+							snprintf(line,lineSize, "L %d:\t\t\t\t\t\t// if not - l:%d\n", $<int1>1,numlin);
 							gc(line);
 							deleteScope(scope);
 							};
 
 elifCond: 			/* empty */
-|					elifCond 
+|					elifCond
 					{$<int1>$ = getTag();}	// if not
 					ELIF '(' expression ')' {
 					if ($5->tipo != boolean){
 						yyerror("La expresión del if no es booleana");
 					}
-					snprintf(line,lineSize, "\tIF (!R%d) GT(%d);//elif bool - l:%d\n",$5->reg, $<int1>2,numlin);
+					snprintf(line,lineSize, "\tIF (!R%d) GT(%d);\t\t\t\t// elif bool - l:%d\n",$5->reg, $<int1>2,numlin);
 					gc(line);
 					lib_reg($5);
 					}
 					'{' statementWrapper
 					{
-					snprintf(line,lineSize, "\tGT(%d); //exit elif - l:%d\n",fi,numlin);
+					snprintf(line,lineSize, "\tGT(%d);\t\t\t\t// exit elif - l:%d\n",fi,numlin);
 					gc(line);
 					}
 					'}'
 					{
-					snprintf(line,lineSize, "L %d: //elif not - l:%d\n", $<int1>2,numlin);
+					snprintf(line,lineSize, "L %d:\t\t\t\t\t\t// elif not - l:%d\n", $<int1>2,numlin);
 					gc(line);
 					deleteScope(scope);
 					};
@@ -499,36 +499,69 @@ varAssign: 	ID '=' expression				{
 
 
 /********* REGLAS DECLARACIÓN DE VARIABLES *********/
-variabledcl:	typePrimitive ID '=' expression ';' 	{	
-															r7Displacement++;
-															adde($2, $1, (scope == 0) ? global : local, scope, (r7Displacement * 4), NULL);
-															
-															snprintf(line, lineSize, "\tR7 = R7 - 4;\t\t\t// Reservamos espacio en pila para la variable %s l:%d\n", $2, numlin);
-															gc(line);
-															
-															if($4->tipo == comaFlotante) {
-																if($1 == comaFlotante) {
-																	snprintf(line, lineSize, "\tF(R6 - %d) = RR%d;\t\t\t// Declaramos la variable %s l:%d\n", 4 * r7Displacement, $4->reg, $2, numlin);
-																} else if($1 == entero) {
-																	snprintf(line, lineSize, "\tI(R6 - %d) = RR%d;\t\t\t// Declaramos la variable %s l:%d\n", 4 * r7Displacement, $4->reg, $2, numlin);
-																} else {
-																	yyerror("El tipo de la variable y el que se quiere asignar no coinciden.");
+variabledcl:	typePrimitive ID '=' expression ';'
+															{
+															if ($1 != $4->tipo){
+																if (!($1 == entero && $4->tipo == comaFlotante ||
+																		$1 == comaFlotante && $4->tipo == entero)){
+																	yyerror("Los tipos no coinciden");
 																}
-															} else if($4->tipo == entero){
-																if($1 == comaFlotante) {
-																	snprintf(line, lineSize, "\tF(R6 - %d) = R%d;\t\t\t// Declaramos la variable %s l:%d\n", 4 * r7Displacement, $4->reg, $2, numlin);
-																} else if($1 == entero) {
-																	snprintf(line, lineSize, "\tI(R6 - %d) = R%d;\t\t\t// Declaramos la variable %s l:%d\n", 4 * r7Displacement, $4->reg, $2, numlin);
-																} else {
-																	yyerror("El tipo de la variable y el que se quiere asignar no coinciden.");
-																}
-															} else {
-																if($1 != $4->tipo) yyerror("El tipo de la variable y el que se quiere asignar no coinciden.");
-																snprintf(line, lineSize, "\tI(R6 - %d) = R%d;\t\t\t// Declaramos la variable %s l:%d\n", 4 * r7Displacement, $4->reg, $2, numlin);
 															}
-															
-															gc(line);
-															
+															if (scope == 0){
+																adde($2, $1, global, scope, getAddress($1, -1), NULL);
+																struct nodo *puntero = search($2, global);
+
+																snprintf(line, lineSize, "STAT(%d)\n", stat);
+																gc(line);
+																snprintf(line, lineSize, "\tDAT(0x%05x,%c,0);\t\t\t// Guardamos espacio variable global %s - l:%d\n", puntero->address, getLetter($1), $2, numlin);
+																gc(line);
+																snprintf(line, lineSize, "CODE(%d)\n", stat);
+																gc(line);
+																stat = stat + 1;
+
+																struct reg_tipo *ad = malloc(sizeof(struct reg_tipo));
+																ad->reg = assign_reg(entero);
+																ad->tipo = entero;
+																snprintf(line, lineSize, "\tR%d=0x%05x;\t\t\t\t// Guardamos en la variable global %s su valor - l:%d\n", ad->reg, puntero->address,$2, numlin);
+																gc(line);
+																if ($4->tipo == comaFlotante){
+																	snprintf(line, lineSize, "\tF(R%d) = RR%d;\t\t\t\t\n", ad->reg, $4->reg);
+																	gc(line);
+																}else{
+																	snprintf(line, lineSize, "\tI(R%d) = R%d;\t\t\t\t\n", ad->reg, $4->reg);
+																	gc(line);
+																}
+																free(ad);
+															}else{
+                                r7Displacement++;
+                                adde($2, $1, local, scope, (r7Displacement * 4), NULL);
+
+                                snprintf(line, lineSize, "\tR7 = R7 - 4;\t\t\t// Reservamos espacio en pila para la variable %s l:%d\n", $2, numlin);
+                                gc(line);
+
+                                if($4->tipo == comaFlotante) {
+                                  if($1 == comaFlotante) {
+                                    snprintf(line, lineSize, "\tF(R6 - %d) = RR%d;\t\t\t// Declaramos la variable %s l:%d\n", 4 * r7Displacement, $4->reg, $2, numlin);
+                                  } else if($1 == entero) {
+                                    snprintf(line, lineSize, "\tI(R6 - %d) = RR%d;\t\t\t// Declaramos la variable %s l:%d\n", 4 * r7Displacement, $4->reg, $2, numlin);
+                                  } else {
+                                    yyerror("El tipo de la variable y el que se quiere asignar no coinciden.");
+                                  }
+                                } else if($4->tipo == entero){
+                                  if($1 == comaFlotante) {
+                                    snprintf(line, lineSize, "\tF(R6 - %d) = R%d;\t\t\t// Declaramos la variable %s l:%d\n", 4 * r7Displacement, $4->reg, $2, numlin);
+                                  } else if($1 == entero) {
+                                    snprintf(line, lineSize, "\tI(R6 - %d) = R%d;\t\t\t// Declaramos la variable %s l:%d\n", 4 * r7Displacement, $4->reg, $2, numlin);
+                                  } else {
+                                    yyerror("El tipo de la variable y el que se quiere asignar no coinciden.");
+                                  }
+                                } else {
+                                  if($1 != $4->tipo) yyerror("El tipo de la variable y el que se quiere asignar no coinciden.");
+                                  snprintf(line, lineSize, "\tI(R6 - %d) = R%d;\t\t\t// Declaramos la variable %s l:%d\n", 4 * r7Displacement, $4->reg, $2, numlin);
+                                }
+
+                                gc(line);
+															}
 															lib_reg($4);
 														}
 |					STRING ID '=' LIT_STRING ';'
@@ -561,12 +594,12 @@ arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' {
 																		}
 |					typePrimitive '[' ']' ID '=' '{' {tipo_array = $1;} arrayWrapper '}' ';' 	{
 																									struct array *arr = malloc(sizeof(struct array));
-																									arr->length = longitud_array;		
+																									arr->length = longitud_array;
 																									arr->address = getAddress($1, arr->length);
-																									adde($4, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), arr);																									
+																									adde($4, $1, (scope == 0) ? global : local, scope, getAddress($1, 1), arr);
 																									tipo_array = -1;
 																									longitud_array = 0;
-																								}; 
+																								};
 
 arrayWrapper:	/* empty */
 |					array;
@@ -578,13 +611,13 @@ array:		{longitud_array++;} expression				{if($2->tipo != tipo_array) yyerror("E
 
 // TODO string equals string
 // TODO comprobar uno a uno si los operadores son correctos y funcionan en q
-// FIXME string 
+// FIXME string
 /********* REGLAS EXPRESIONES *********/
-expression:	functionCall									{	
+expression:	functionCall									{
 																struct nodo *puntero = search($1, funcion);
 
 																if (puntero->tipo == vacio) yyerror("Una funcion void no devuelve valor.");
-																
+
 																struct reg_tipo *ex = malloc(sizeof(struct reg_tipo));
 																
 																if(puntero->tipo != comaFlotante) {
@@ -593,7 +626,6 @@ expression:	functionCall									{
 																	ex->reg = 3;
 																}
 																ex->tipo = puntero->tipo;
-																
 																$$ = ex;
 															}
 |					ID '[' LIT_INT ']'						{
@@ -763,13 +795,13 @@ functionCall: 		ID {
 							snprintf(line,lineSize, "\tR7 = R7 - %d;\t\t\t// Reservamos espacio en pila para los parametros, la etiqueta de regreso y la posicion actual de R6 (llamada a funcion) - l:%d\n", (functionNumberParam + 2) * 4, numlin);
 							gc(line);
 						}
-					
+
 					'(' paramsFunctionCallWrapper ')' 	{
 																	struct nodo *puntero = search($1, funcion);
 																	if(puntero == NULL) {
 																		yyerror("La funcion no esta declarada en el header");
 																	}
-																	
+
 																	int tag = getTag();
 																	
 																	snprintf(line,lineSize, "\tP(R7 + %d) = R6;\t\t\t// Guardamos la posicion actual de R6 en el espacio reservado - l:%d\n", (functionNumberParam + 1) * 4, numlin);
@@ -807,14 +839,14 @@ functionCall: 		ID {
 																		
 																		countIntReg--;
 																	}
-																	
+
 																	functionNumberParam = -1;
 																	functionName = "";
 
 																	$$ = $1;
-																};		
+																};
 
-paramsFunctionCallWrapper: 	/* empty */																										
+paramsFunctionCallWrapper: 	/* empty */
 |					paramsFunctionCall {
 											if(checkingParamNumber < functionNumberParam) yyerror("El numero de parametros es menor que en el header.");
 											checkingParamNumber = 0;
@@ -824,7 +856,7 @@ paramsFunctionCallWrapper: 	/* empty */
 paramsFunctionCall: paramsFunctionCall ',' {checkingParamNumber++;} expression 		{
 																						struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
 																						if(param == NULL) yyerror("El numero de parametros no se corresponde con el especificado en el header.");
-																						if($4->tipo != param->tipo) yyerror("El tipo del parametro no corresponde con el del header");	
+																						if($4->tipo != param->tipo) yyerror("El tipo del parametro no corresponde con el del header");
 
 																						if($4->tipo != comaFlotante) {
 																							snprintf(line,lineSize, "\tI(R7 + %d) = R%d;\t\t\t// Guardamos el valor del parametro en el espacio reservado por la pila l:%d\n", (checkingParamNumber - 1) * 4, $4->reg, numlin);
@@ -832,14 +864,14 @@ paramsFunctionCall: paramsFunctionCall ',' {checkingParamNumber++;} expression 	
 																							snprintf(line,lineSize, "\tF(R7 + %d) = RR%d;\t\t\t// Guardamos el valor del parametro en el espacio reservado por la pila l:%d\n", (checkingParamNumber - 1) * 4, $4->reg, numlin);
 																						}
 																						gc(line);
-																						
+
 																						lib_reg($4);
-																					}												
-|	{checkingParamNumber++;} expression 											{	
+																					}
+|	{checkingParamNumber++;} expression 											{
 																						struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
 																						if(param == NULL) yyerror("El numero de parametros no se corresponde con el especificado en el header.");
-																						if($2->tipo != param->tipo) yyerror("El tipo del parametro no corresponde con el del header");	
-																						
+																						if($2->tipo != param->tipo) yyerror("El tipo del parametro no corresponde con el del header");
+
 																						param->address = checkingParamNumber*4;
 
 																						if($2->tipo != comaFlotante) {
@@ -848,9 +880,9 @@ paramsFunctionCall: paramsFunctionCall ',' {checkingParamNumber++;} expression 	
 																							snprintf(line,lineSize, "\tF(R7 + %d) = RR%d;\t\t\t// Guardamos el valor del parametro en el espacio reservado por la pila l:%d\n", (checkingParamNumber - 1) * 4, $2->reg, numlin);
 																						}
 																						gc(line);
-																						
+
 																						lib_reg($2);
-																					};																					
+																					};
 
 
 
@@ -861,7 +893,7 @@ typePrimitive:		BOOL 			{$$ = boolean;}
 |					FLOAT			{$$ = comaFlotante;};
 
 typeVariable: 		STRING			{$$ = ristra;}
-|					typePrimitive	{$$ = $1;};	
+|					typePrimitive	{$$ = $1;};
 
 typeFunction: 		VOID			{$$ = vacio;}
 |					typePrimitive	{$$ = $1;};
@@ -998,7 +1030,8 @@ int main(int argc, char** argv) {
 	fputs("", outQ);
 	fclose(outQ);
 	outQ = fopen(fName,"a");
-
+	snprintf(line,lineSize, "#include \"Q.h\"\n");
+	gc(line);
 	snprintf(line,lineSize, "BEGIN\n");
 	gc(line);
 	yyparse();
@@ -1261,4 +1294,19 @@ int asignaciones(struct reg_tipo* reg, char* id, enum op_asignaciones operator){
 
 	free(comment);
 	return 0;
+}
+
+char getLetter(enum type tipo){
+	if (tipo == entero) {
+		return 'I';
+	}else if(tipo == caracter){
+		return 'U';
+	}else if(tipo == boolean){
+		// We will trean them as chars
+		return 'U';
+	}else if(tipo == comaFlotante){
+		return 'F';
+	}
+	yyerror("Error de compilador, tipo no definido");
+	return '\'';
 }

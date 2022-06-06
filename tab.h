@@ -2,6 +2,8 @@
 enum category {funcion, local, global, param};
 enum type {caracter, entero, comaFlotante, ristra, boolean, vacio};
 
+unsigned long long z;
+
 struct nodo {
     char *id;   
 	int scope;

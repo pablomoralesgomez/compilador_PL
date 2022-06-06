@@ -1,0 +1,7 @@
+global{}
+
+header{}
+
+int main(){
+  print(5);
+}
