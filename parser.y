@@ -1184,117 +1184,114 @@ struct reg_tipo * aritmeticas(struct reg_tipo* izq, struct reg_tipo* der, enum o
 }
 
 int asignaciones(struct reg_tipo* reg, char* id, enum op_asignaciones operator){
-	char *comment = malloc(lineSize);
-	snprintf(comment,lineSize,"\t\t\t// Asignaciones - l:%d",numlin);
-
-	struct nodo *puntero = find(id);
-
-	// Address registry
-	int temp = assign_reg(entero);
-	struct reg_tipo *address_reg = malloc(sizeof(struct reg_tipo));
-	address_reg->reg = temp;
-	address_reg->tipo = entero;
-
+	
 	char op[1];
-	if (operator == aigual){	// FIXME string
-		if (reg->tipo == comaFlotante){
-			snprintf(line,lineSize,"\tR%d = 0x%05d;%s\n", address_reg->reg, puntero->address,comment);
-			gc(line);
-			snprintf(line,lineSize,"\tF(R%d) = RR%d;\n", address_reg->reg, reg->reg);
-			gc(line);
-		}else{
-			snprintf(line,lineSize,"\tR%d = 0x%05d;%s\n", address_reg->reg, puntero->address,comment);
-			gc(line);
-			snprintf(line,lineSize,"\tI(R%d) = R%d;\n", address_reg->reg, reg->reg);
-			gc(line);
-		}
-		lib_reg(address_reg);
-		lib_reg(reg);
+	struct nodo *puntero = find(id);
+	
+	if(operator == aigual) {	
+	
+		if(reg->tipo == comaFlotante) {
+			if(puntero->tipo == comaFlotante) {
+				snprintf(line,lineSize,"\tF(R6 - %d) = RR%d;\t\t\t// Asignacion - l:%d\n", puntero->address, reg->reg, numlin);
 
-		free(comment);
+			} else if(puntero->tipo == entero) {
+				snprintf(line,lineSize,"\tI(R6 - %d) = RR%d;\t\t\t// Asignacion - l:%d\n", puntero->address, reg->reg, numlin);
+
+			} else {
+				yyerror("No puede asignar una expresion de ese tipo a esta variable.");
+			}
+			
+		} else if(reg->tipo == entero) {
+			if(puntero->tipo == comaFlotante) {
+				snprintf(line,lineSize,"\tF(R6 - %d) = R%d;\t\t\t// Asignacion - l:%d\n", puntero->address, reg->reg, numlin);
+
+			} else if(puntero->tipo == entero) {
+				snprintf(line,lineSize,"\tI(R6 - %d) = R%d;\t\t\t// Asignacion - l:%d\n", puntero->address, reg->reg, numlin);
+
+			} else {
+				yyerror("No puede asignar una expresion de ese tipo a esta variable.");
+			}
+		} else {
+			if(reg->tipo != puntero->tipo) yyerror("El tipo de la expresion a la derecha no puede asignarse a una variable de este tipo.");
+	
+			snprintf(line,lineSize,"\tI(R6 - %d) = R%d;\t\t\t// Asignacion - l:%d\n", puntero->address, reg->reg, numlin);
+			
+			
+		}
+		gc(line);
+		
 		return 0;
-	}else{
+	} else {
+	
 		if (operator == asum){
-			strncpy(op, "+",sizeof(op));
+			strncpy(op, "+", sizeof(op));
+			
 		}else if (operator == asub){
-			strncpy(op, "-",sizeof(op));
+			strncpy(op, "-", sizeof(op));
+			
 		}else if (operator == amul){
-			strncpy(op, "*",sizeof(op));
+			strncpy(op, "*", sizeof(op));
+			
 		}else if (operator == adivi){
-			strncpy(op, "/",sizeof(op));
+			strncpy(op, "/", sizeof(op));
+			
 		}else{
 			yyerror("Error de compilador en aritméticas");
 		}
 	}
-
-	temp = assign_reg(puntero->tipo);
-	struct reg_tipo *val = malloc(sizeof(struct reg_tipo));
-	val->reg = temp;
-	val->tipo = puntero->tipo;
-
-	if(puntero->tipo == entero && reg->tipo == entero){
-		// Recogemos direccion en registro direccion
-		snprintf(line,lineSize,"\tR%d=0x%05d;%s\n", address_reg->reg, puntero->address,comment);
+	
+	int new_reg = assign_reg(puntero->tipo);
+	
+	struct reg_tipo *address_puntero = malloc(sizeof(struct reg_tipo));	
+	address_puntero->reg = new_reg;
+	address_puntero->tipo = puntero->tipo;
+	
+	if(puntero->tipo == entero && reg->tipo == entero) {
+		snprintf(line,lineSize,"\tR%d = I(R6 - %d);\t\t\t// Cargamos la variable sobre la que se realiza la operacion y se asigna - l:%d\n", address_puntero->reg, puntero->address, numlin);
 		gc(line);
-		// Guardamos valor de la direccion (usando el registro direccion) en el registro valor
-		snprintf(line,lineSize,"\tR%d=I(R%d);\n", val->reg, address_reg->reg);
+		
+		snprintf(line,lineSize,"\tR%d = R%d %s R%d;\t\t\t// Realizamos la operacion - l:%d\n", address_puntero->reg, address_puntero->reg, op, reg->reg, numlin);
 		gc(line);
-		// Operamos
-		snprintf(line,lineSize, "\tR%d=R%d%sR%d;\n",val->reg,val->reg,op,reg->reg);
+		
+		snprintf(line,lineSize,"\tI(R6 - %d) = R%d;\t\t\t// Asignamos el nuevo resultado en la zona reservada para la variable cargada - l:%d\n", puntero->address, address_puntero->reg, numlin);
 		gc(line);
-		// Guardamos en direccion
-		snprintf(line,lineSize, "\tI(R%d)=R%d;\n",address_reg->reg,val->reg);
+	} else if(puntero->tipo == entero && reg->tipo == comaFlotante) {
+		snprintf(line,lineSize,"\tR%d = I(R6 - %d);\t\t\t// Cargamos la variable sobre la que se realiza la operacion y se asigna - l:%d\n", address_puntero->reg, puntero->address, numlin);
 		gc(line);
-	}else if(puntero->tipo == comaFlotante && reg->tipo == comaFlotante){
-		// Recogemos direccion en registro direccion
-		snprintf(line,lineSize,"\tR%d=0x%05d;%s\n", address_reg->reg, puntero->address,comment);
+		
+		snprintf(line,lineSize,"\tR%d = R%d %s RR%d;\t\t\t// Realizamos la operacion - l:%d\n", address_puntero->reg, address_puntero->reg, op, reg->reg, numlin);
 		gc(line);
-		// Guardamos valor de la direccion (usando el registro direccion) en el registro valor
-		snprintf(line,lineSize,"\tRR%d=I(R%d);\n", val->reg, address_reg->reg);
+		
+		snprintf(line,lineSize,"\tI(R6 - %d) = R%d;\t\t\t// Asignamos el nuevo resultado en la zona reservada para la variable cargada - l:%d\n", puntero->address, address_puntero->reg, numlin);
 		gc(line);
-		// Operamos
-		snprintf(line,lineSize, "\tRR%d=RR%d%sRR%d;\n",val->reg,val->reg,op,reg->reg);
+	} else if(puntero->tipo == comaFlotante && reg->tipo == entero) {
+		snprintf(line,lineSize,"\tRR%d = F(R6 - %d);\t\t\t// Cargamos la variable sobre la que se realiza la operacion y se asigna - l:%d\n", address_puntero->reg, puntero->address, numlin);
 		gc(line);
-		// Guardamos en direccion
-		snprintf(line,lineSize, "\tI(R%d)=RR%d;\n",address_reg->reg,val->reg);
+		
+		snprintf(line,lineSize,"\tRR%d = RR%d %s R%d;\t\t\t// Realizamos la operacion - l:%d\n", address_puntero->reg, address_puntero->reg, op, reg->reg, numlin);
 		gc(line);
-	}else if(puntero->tipo == entero && reg->tipo == comaFlotante){
-		// Recogemos direccion en registro direccion
-		snprintf(line,lineSize,"\tR%d=0x%05d;%s\n", address_reg->reg, puntero->address,comment);
+		
+		snprintf(line,lineSize,"\tF(R6 - %d) = RR%d;\t\t\t// Asignamos el nuevo resultado en la zona reservada para la variable cargada - l:%d\n", puntero->address, address_puntero->reg, numlin);
 		gc(line);
-		// Guardamos valor de la direccion (usando el registro direccion) en el registro valor
-		snprintf(line,lineSize,"\tR%d=I(R%d);\n", val->reg, address_reg->reg);
+	} else if(puntero->tipo == comaFlotante && reg->tipo == comaFlotante) {
+		snprintf(line,lineSize,"\tRR%d = F(R6 - %d);\t\t\t// Cargamos la variable sobre la que se realiza la operacion y se asigna - l:%d\n", address_puntero->reg, puntero->address, numlin);
 		gc(line);
-		// Operamos
-		snprintf(line,lineSize, "\tR%d=R%d%sRR%d;\n",val->reg,val->reg,op,reg->reg);
+		
+		snprintf(line,lineSize,"\tRR%d = RR%d %s RR%d;\t\t\t// Realizamos la operacion - l:%d\n", address_puntero->reg, address_puntero->reg, op, reg->reg, numlin);
 		gc(line);
-		// Guardamos en direccion
-		snprintf(line,lineSize, "\tI(R%d)=R%d;\n",address_reg->reg,val->reg);
+		
+		snprintf(line,lineSize,"\tF(R6 - %d) = RR%d;\t\t\t// Asignamos el nuevo resultado en la zona reservada para la variable cargada - l:%d\n", puntero->address, address_puntero->reg, numlin);
 		gc(line);
-	}else if(puntero->tipo == comaFlotante && reg->tipo == entero){
-		// Recogemos direccion en registro direccion
-		snprintf(line,lineSize,"\tR%d=0x%05d;%s\n", address_reg->reg, puntero->address,comment);
-		gc(line);
-		// Guardamos valor de la direccion (usando el registro direccion) en el registro valor
-		snprintf(line,lineSize,"\tRR%d=I(R%d);\n", val->reg, address_reg->reg);
-		gc(line);
-		// Operamos
-		snprintf(line,lineSize, "\tRR%d=RR%d%sR%d;\n",val->reg,val->reg,op,reg->reg);
-		gc(line);
-		// Guardamos en direccion
-		snprintf(line,lineSize, "\tI(R%d)=RR%d;\n",address_reg->reg,val->reg);
-		gc(line);
-	}else{
-		yyerror("Fallo en asignaciones, asegúrese de que usa tipos correctos");
+	} else {
+		yyerror("Los tipos usados en la asignacion no estan permitidos.");
 	}
-
-	lib_reg(val);
-	lib_reg(address_reg);
+	
 	lib_reg(reg);
-
-	free(comment);
+	lib_reg(address_puntero);
+	
 	return 0;
 }
+
 
 char getLetter(enum type tipo){
 	if (tipo == entero) {
