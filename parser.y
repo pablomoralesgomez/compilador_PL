@@ -27,7 +27,7 @@ int tagCount = 1;
 int br = 0;
 int co = 0;
 int fi = 0;
-int stat = 0;
+int statCount = 0;
 
 
 int int_regs[1  + 5];
@@ -73,6 +73,7 @@ struct reg_tipo * aritmeticas(struct reg_tipo*, struct reg_tipo*, enum op_aritme
 int asignaciones(struct reg_tipo*, char*, enum op_asignaciones);
 int getTag();
 char getLetter(enum type);
+int getStat();
 
 struct nodo * find(char* id);
 
@@ -138,7 +139,7 @@ struct nodo * find(char* id);
 
 %type <tip> typeFunction typePrimitive typeVariable
 %type <str> functionCall
-%type <expr> expression literals boolLiteral
+%type <expr> expression literals boolLiteral printeableThings
 
 %start program
 
@@ -302,7 +303,20 @@ statement: 			loop
 												}
 												}
 |					PRINT '(' printeableThings ')' ';' {
-																							
+																							int stat = getStat();
+																							int tag = getTag();
+																							snprintf(line, lineSize, "STAT(%d)\n// print - l:%d\n", stat, numlin);
+																							gc(line);
+																							snprintf(line, lineSize, "\tSTR(0x%05x,\"1\");\n", getAddress(entero,-1));
+																							gc(line);
+																							snprintf(line, lineSize, "CODE(%d)\n", stat);
+																							gc(line);
+																							snprintf(line,lineSize, "\tR0=R%d;\t\t\t\t\n", numlin);
+																							gc(line);							
+																							snprintf(line,lineSize, "\tR0=R%d;\t\t\t\t", numlin);
+																							gc(line);
+																							snprintf(line,lineSize, "L %d:\t\t\t\t\t\t\n", tag);
+																							gc(line);
 																							}
 |					CONTINUE ';'	{
 												if (co){
@@ -511,13 +525,14 @@ variabledcl:	typePrimitive ID '=' expression ';'
 																adde($2, $1, global, scope, getAddress($1, -1), NULL);
 																struct nodo *puntero = search($2, global);
 
+																int stat = getStat();
 																snprintf(line, lineSize, "STAT(%d)\n", stat);
 																gc(line);
 																snprintf(line, lineSize, "\tDAT(0x%05x,%c,0);\t\t\t// Guardamos espacio variable global %s - l:%d\n", puntero->address, getLetter($1), $2, numlin);
 																gc(line);
 																snprintf(line, lineSize, "CODE(%d)\n", stat);
 																gc(line);
-																stat = stat + 1;
+																
 
 																struct reg_tipo *ad = malloc(sizeof(struct reg_tipo));
 																ad->reg = assign_reg(entero);
@@ -1309,4 +1324,10 @@ char getLetter(enum type tipo){
 	}
 	yyerror("Error de compilador, tipo no definido");
 	return '\'';
+}
+
+int getStat(){
+	int res = statCount;
+	statCount = statCount + 1;
+	return res;
 }
