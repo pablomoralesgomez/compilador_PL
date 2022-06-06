@@ -281,7 +281,9 @@ statement: 			loop
 													yyerror("Break fuera de bucle");
 												}
 												}
-|					PRINT '(' printeableThings ')' ';'
+|					PRINT '(' printeableThings ')' ';' {
+																							
+																							}
 |					CONTINUE ';'	{
 												if (co){
 													snprintf(line,lineSize, "\tGT(%d);\t\t\t\t// continue - l:%d\n", co,numlin);
@@ -482,10 +484,10 @@ variabledcl:	typePrimitive ID '=' expression ';'
 																snprintf(line, lineSize, "\tR%d=0x%05x;\t\t\t\t// Guardamos en la variable global %s su valor - l:%d\n", ad->reg, puntero->address,$2, numlin);
 																gc(line);
 																if ($4->tipo == comaFlotante){
-																	snprintf(line, lineSize, "\t%c(R%d) = RR%d;\t\t\t\t\n", getLetter(puntero->tipo), ad->reg, $4->reg);
+																	snprintf(line, lineSize, "\tF(R%d) = RR%d;\t\t\t\t\n", ad->reg, $4->reg);
 																	gc(line);
 																}else{
-																	snprintf(line, lineSize, "\t%c(R%d) = R%d;\t\t\t\t\n", getLetter(puntero->tipo), ad->reg, $4->reg);
+																	snprintf(line, lineSize, "\tI(R%d) = R%d;\t\t\t\t\n", ad->reg, $4->reg);
 																	gc(line);
 																}
 																free(ad);

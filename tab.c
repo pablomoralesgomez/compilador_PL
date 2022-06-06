@@ -122,7 +122,8 @@ int add(char* id, enum type tipo, enum category categoria, int scope, int addres
 // 0 or more for arrays
 int getAddress(enum type tipo, int length){
 	int octetos;
-	if (tipo == entero) {
+	octetos = 4;
+	/*if (tipo == entero) {
 		octetos = 4;
 	}else if(tipo == caracter){
 		octetos = 1;
@@ -131,7 +132,7 @@ int getAddress(enum type tipo, int length){
 		octetos = 1;
 	}else if(tipo == comaFlotante){
 		octetos = 4;
-	}
+	}*/
 
 	if (length == -1){
 		z = z - octetos;
