@@ -71,7 +71,6 @@ struct reg_tipo * igualdades(struct reg_tipo*, struct reg_tipo*, enum op_igualda
 struct reg_tipo * logicos(struct reg_tipo*, struct reg_tipo*, enum op_logicos);
 struct reg_tipo * aritmeticas(struct reg_tipo*, struct reg_tipo*, enum op_aritmeticas);
 int asignaciones(struct reg_tipo*, char*, enum op_asignaciones);
-int asignaciones2(struct reg_tipo*, char*, enum op_asignaciones);
 int getTag();
 char getLetter(enum type);
 
@@ -1289,120 +1288,10 @@ int asignaciones(struct reg_tipo* reg, char* id, enum op_asignaciones operator){
 	
 	lib_reg(reg);
 	lib_reg(address_puntero);
-}
-
-int asignaciones2(struct reg_tipo* reg, char* id, enum op_asignaciones operator){
-	char *comment = malloc(lineSize);
-	snprintf(comment,lineSize,"\t\t\t// Asignaciones - l:%d",numlin);
-
-	struct nodo *puntero = find(id);
-
-	// Address registry
-	int temp = assign_reg(entero);
-	struct reg_tipo *address_reg = malloc(sizeof(struct reg_tipo));
-	address_reg->reg = temp;
-	address_reg->tipo = entero;
-
-	char op[1];
-	if (operator == aigual){	// FIXME string
-		if (reg->tipo == comaFlotante){
-			snprintf(line,lineSize,"\tR%d = 0x%05d;%s\n", address_reg->reg, puntero->address,comment);
-			gc(line);
-			snprintf(line,lineSize,"\tF(R%d) = RR%d;\n", address_reg->reg, reg->reg);
-			gc(line);
-		}else{
-			snprintf(line,lineSize,"\tR%d = 0x%05d;%s\n", address_reg->reg, puntero->address,comment);
-			gc(line);
-			snprintf(line,lineSize,"\tI(R%d) = R%d;\n", address_reg->reg, reg->reg);
-			gc(line);
-		}
-		lib_reg(address_reg);
-		lib_reg(reg);
-
-		free(comment);
-		return 0;
-	}else{
-		if (operator == asum){
-			strncpy(op, "+",sizeof(op));
-		}else if (operator == asub){
-			strncpy(op, "-",sizeof(op));
-		}else if (operator == amul){
-			strncpy(op, "*",sizeof(op));
-		}else if (operator == adivi){
-			strncpy(op, "/",sizeof(op));
-		}else{
-			yyerror("Error de compilador en aritméticas");
-		}
-	}
-
-	temp = assign_reg(puntero->tipo);
-	struct reg_tipo *val = malloc(sizeof(struct reg_tipo));
-	val->reg = temp;
-	val->tipo = puntero->tipo;
-
-	if(puntero->tipo == entero && reg->tipo == entero){
-		// Recogemos direccion en registro direccion
-		snprintf(line,lineSize,"\tR%d=0x%05d;%s\n", address_reg->reg, puntero->address,comment);
-		gc(line);
-		// Guardamos valor de la direccion (usando el registro direccion) en el registro valor
-		snprintf(line,lineSize,"\tR%d=I(R%d);\n", val->reg, address_reg->reg);
-		gc(line);
-		// Operamos
-		snprintf(line,lineSize, "\tR%d=R%d%sR%d;\n",val->reg,val->reg,op,reg->reg);
-		gc(line);
-		// Guardamos en direccion
-		snprintf(line,lineSize, "\tI(R%d)=R%d;\n",address_reg->reg,val->reg);
-		gc(line);
-	}else if(puntero->tipo == comaFlotante && reg->tipo == comaFlotante){
-		// Recogemos direccion en registro direccion
-		snprintf(line,lineSize,"\tR%d=0x%05d;%s\n", address_reg->reg, puntero->address,comment);
-		gc(line);
-		// Guardamos valor de la direccion (usando el registro direccion) en el registro valor
-		snprintf(line,lineSize,"\tRR%d=I(R%d);\n", val->reg, address_reg->reg);
-		gc(line);
-		// Operamos
-		snprintf(line,lineSize, "\tRR%d=RR%d%sRR%d;\n",val->reg,val->reg,op,reg->reg);
-		gc(line);
-		// Guardamos en direccion
-		snprintf(line,lineSize, "\tI(R%d)=RR%d;\n",address_reg->reg,val->reg);
-		gc(line);
-	}else if(puntero->tipo == entero && reg->tipo == comaFlotante){
-		// Recogemos direccion en registro direccion
-		snprintf(line,lineSize,"\tR%d=0x%05d;%s\n", address_reg->reg, puntero->address,comment);
-		gc(line);
-		// Guardamos valor de la direccion (usando el registro direccion) en el registro valor
-		snprintf(line,lineSize,"\tR%d=I(R%d);\n", val->reg, address_reg->reg);
-		gc(line);
-		// Operamos
-		snprintf(line,lineSize, "\tR%d=R%d%sRR%d;\n",val->reg,val->reg,op,reg->reg);
-		gc(line);
-		// Guardamos en direccion
-		snprintf(line,lineSize, "\tI(R%d)=R%d;\n",address_reg->reg,val->reg);
-		gc(line);
-	}else if(puntero->tipo == comaFlotante && reg->tipo == entero){
-		// Recogemos direccion en registro direccion
-		snprintf(line,lineSize,"\tR%d=0x%05d;%s\n", address_reg->reg, puntero->address,comment);
-		gc(line);
-		// Guardamos valor de la direccion (usando el registro direccion) en el registro valor
-		snprintf(line,lineSize,"\tRR%d=I(R%d);\n", val->reg, address_reg->reg);
-		gc(line);
-		// Operamos
-		snprintf(line,lineSize, "\tRR%d=RR%d%sR%d;\n",val->reg,val->reg,op,reg->reg);
-		gc(line);
-		// Guardamos en direccion
-		snprintf(line,lineSize, "\tI(R%d)=RR%d;\n",address_reg->reg,val->reg);
-		gc(line);
-	}else{
-		yyerror("Fallo en asignaciones, asegúrese de que usa tipos correctos");
-	}
-
-	lib_reg(val);
-	lib_reg(address_reg);
-	lib_reg(reg);
-
-	free(comment);
+	
 	return 0;
 }
+
 
 char getLetter(enum type tipo){
 	if (tipo == entero) {
