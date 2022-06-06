@@ -14,8 +14,9 @@ int main() {
 	
 	int x = 3;
 	float y2 = 9;
+	x = 4;
 	
-	int h = x + y2 * sum(8 + x, 2.5, 9);
+	int h = x + y2 * sum(8, 2.5, 9);
 
 }
 
