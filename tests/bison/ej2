@@ -1,22 +1,30 @@
-
 header{
-	int sum(int x, float y, int z);
-	int f(int gth);
+    int sum(int x, int y, int z);
+    int f(int gth);
 }
 
-int sum(int x, float y, int z) {
-	int res = x + y + z;
-	return res;
+int sum(int x, int y, int z) {
+    print(x);
+      print("\n");
+    print(y);
+      print("\n");
+    print(z);
+      print("\n");
+    int res = x + y + z;
+    return res;
 }
 
 int main() {
-	
-	int h = 6 + sum(sum(sum(sum(sum(sum(8, 2.5, f(0)), 2.5, f(0)), 2.5, f(0)), 2.5, f(0)), 2.5, f(0)), 2.5, f(0));
-	print(h);
-
+    
+    int h = 6 + sum(8, 1, f(0));
+    
+    print(h);
+      print("\n");
 }
 
 int f(int gth) {
-	return gth * 8;
-}
 
+    print(gth);
+      print("\n");
+    return gth * 8;
+}

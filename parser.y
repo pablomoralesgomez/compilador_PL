@@ -793,10 +793,17 @@ expression: functionCall							{
 |					expression '%' expression				// TODO crear función interna
 |					LIT_STRING											{
 																					int stat = getStat();
-																					int address = getAddress(caracter, strlen($1));
+																					int len = strlen($1);
+																					char *str = (char*)malloc(len);
+																					for (int i = 1; i < len - 1; i = i + 1){
+																						str[i-1] = $1[i];
+																					}
+
+																					int address = getAddress(caracter, strlen(str));
+
 																					snprintf(line, lineSize, "STAT(%d)\n", stat);
 																					gc(line);
-																					snprintf(line, lineSize, "\tSTR(0x%05x,\"%s\");\n", address, $1);
+																					snprintf(line, lineSize, "\tSTR(0x%05x,\"%s\");\n", address, str);
 																					gc(line);
 																					snprintf(line, lineSize, "CODE(%d)\n", stat);
 																					gc(line);
@@ -806,7 +813,6 @@ expression: functionCall							{
 																					snprintf(line, lineSize, "\tR%d=0x%05x;\t\t\t\t// Literal string - l:%d\n", res->reg, address, numlin);
 																					gc(line);
 																					$$ = res;
-																					free($1);
 																					};
 
 literals: 			LIT_INT							{
@@ -1044,7 +1050,7 @@ int getTag(){
 }
 
 void gc(char* text){
-	printf("%s",text);
+	//printf("%s",text);
 	fputs(text, outQ);
 }
 
