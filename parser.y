@@ -250,7 +250,7 @@ functiondcl: 		typeFunction ID {functionName = $2; functionNumberParam = countFu
 										statementWrapper '}'					{	
 																					if(returnCount > 0 && $1 == vacio) yyerror("Las funciones tipo void no permiten el uso de return.");	
 																					if(returnCount < 1 && $1 != vacio) yyerror("La funcion no retorna ningún valor.");
-																					if(!returnScope1) yyerror("Puede que los return de esta funcion sean inaccesibles. Sitúe uno al final de la función para evitarlo.");
+																					if(!returnScope1 && $1 != vacio) yyerror("Puede que los return de esta funcion sean inaccesibles. Sitúe uno al final de la función para evitarlo.");
 																					
 																					snprintf(line, lineSize, "\tR7 = R6;\t\t\t// Eliminamos todas las variables locales y los param de pila - l:%d\n", numlin);
 																					gc(line);
