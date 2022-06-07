@@ -23,15 +23,5 @@ int fibo(int n){
   }elif(n == 0){
     return 0;
   }
-  int a = fibo(n - 1);
-  int b = fibo(n - 2);
-  print("f");
-  print(n);
-  print(" = ");
-  print(a);
-  print(" + ");
-  print(b);
-  print("\n");
-
-  return a + b;
+  return fibo(n - 1) + fibo(n - 2);
 }
