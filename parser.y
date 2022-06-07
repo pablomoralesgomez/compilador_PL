@@ -347,7 +347,7 @@ statement: 			loop
 																							gc(line);
 																							
 																							if ($3->tipo == ristra){
-																								snprintf(line,lineSize, "\tR1 = R%d;\t\t\t\t\n", $3->reg);
+																								snprintf(line,lineSize, "\tR1 = R%d;\n", $3->reg);
 																								gc(line);
 																							}else{
 																								snprintf(line, lineSize, "STAT(%d)\n// print - l:%d\n", stat, numlin);
@@ -356,19 +356,17 @@ statement: 			loop
 																								gc(line);
 																								snprintf(line, lineSize, "CODE(%d)\n", stat);
 																								gc(line);
-																								snprintf(line,lineSize, "\tR1 = 0x%05x;\t\t\t\t\n", address);
+																								snprintf(line,lineSize, "\tR1 = 0x%05x;\n", address);
 																								gc(line);
 																							}
-
-																							snprintf(line,lineSize, "\tR2 = R%d;\t\t\t\t\n", $3->reg);
+																							snprintf(line,lineSize, "\tR2 = R%d;\n", $3->reg);
 																							gc(line);
 																							lib_reg($3);
-																							snprintf(line,lineSize, "\tR0 = %d;\t\t\t\t\n", tag);
+																							snprintf(line,lineSize, "\tR0 = %d;\n", tag);
 																							gc(line);
-																							snprintf(line,lineSize, "\tGT(-12);\t\t\t\t\n");
+																							snprintf(line,lineSize, "\tGT(-12);\n");
 																							gc(line);
-																							
-																							snprintf(line,lineSize, "L %d:\t\t\t\t\t\t\n", tag);
+																							snprintf(line,lineSize, "L %d:\n", tag);
 																							gc(line);
 																							
 																							snprintf(line,lineSize, "\tR0 = I(R7);\t\t\t\t//Recuperamos R0 - l:%d\n", numlin);
@@ -571,7 +569,6 @@ varAssign: 	ID '=' expression				{
 |					ID ASSIGN_DIV expression	{
 																		asignaciones($3, $1, adivi);
 																		};
-//|					LIT_STRING 											// TODO arrays
 //|					arrays 											// TODO arrays
 
 
@@ -605,10 +602,10 @@ variabledcl:	typePrimitive ID '=' expression ';'
 																snprintf(line, lineSize, "\tR%d=0x%05x;\t\t\t\t// Guardamos en la variable global %s su valor - l:%d\n", ad->reg, puntero->address,$2, numlin);
 																gc(line);
 																if ($4->tipo == comaFlotante){
-																	snprintf(line, lineSize, "\tF(R%d) = RR%d;\t\t\t\t\n", ad->reg, $4->reg);
+																	snprintf(line, lineSize, "\tF(R%d) = RR%d;\n", ad->reg, $4->reg);
 																	gc(line);
 																}else{
-																	snprintf(line, lineSize, "\tI(R%d) = R%d;\t\t\t\t\n", ad->reg, $4->reg);
+																	snprintf(line, lineSize, "\tI(R%d) = R%d;\n", ad->reg, $4->reg);
 																	gc(line);
 																}
 																lib_reg(ad);

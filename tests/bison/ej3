@@ -6,7 +6,9 @@ header{
 
 int main(){
   int q = 3;
-  String a = "asras";
+  String pri = "soy la primera string\n";
   int b = 33;
-  String c = "SRSRAS";
+  String seg = "Im the second string\n";
+  seg = pri;
+  print(seg);
 }
