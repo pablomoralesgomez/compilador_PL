@@ -11,7 +11,8 @@ int sum(int x, float y, int z) {
 
 int main() {
 	
-	int h = 6 + sum(8, 2.5, f(0));
+	int h = 6 + sum(sum(sum(sum(sum(sum(8, 2.5, f(0)), 2.5, f(0)), 2.5, f(0)), 2.5, f(0)), 2.5, f(0)), 2.5, f(0));
+	print(h);
 
 }
 

@@ -10,5 +10,5 @@ header{}
 
 int main(){
   x = j + k;
-  print(2);
+  print(x);
 }
