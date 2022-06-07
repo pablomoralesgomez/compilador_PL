@@ -345,12 +345,10 @@ statement: 			loop
 																							gc(line);
 																							
 																							snprintf(line,lineSize, "\tR1 = R%d;\t\t\t\t\n", $3->reg);
+																							gc(line);		// FIXME
+																							snprintf(line,lineSize, "\tR2 = R%d;\n", $3->reg);
 																							gc(line);
-																							
-																							if ($3->tipo == ristra){
-																								snprintf(line,lineSize, "\tR1 = R%d;\n", $3->reg);
-																								gc(line);
-																							}else{
+																							if ($3->tipo != ristra){
 																								int stat = getStat();
 																								snprintf(line, lineSize, "STAT(%d)\n", stat);
 																								gc(line);
@@ -361,8 +359,6 @@ statement: 			loop
 																								snprintf(line,lineSize, "\tR1 = 0x%05x;\n", address);
 																								gc(line);
 																							}
-																							snprintf(line,lineSize, "\tR2 = R%d;\n", $3->reg);
-																							gc(line);
 																							lib_reg($3);
 																							snprintf(line,lineSize, "\tR0 = %d;\n", tag);
 																							gc(line);
