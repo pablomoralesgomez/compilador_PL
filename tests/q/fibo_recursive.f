@@ -1,5 +1,5 @@
 global{
-  int x = 3;
+  int x = 8;
 }
 
 header{
@@ -8,10 +8,13 @@ header{
 
 
 int main(){
+  int res = fibo(x);
+
   print("Fibo de: ");
   print(x);
-  print(" es :\n");
-  print(fibo(x));
+  print(" es :");
+  print(res);
+  print("\n");
 }
 
 int fibo(int n){
@@ -20,11 +23,11 @@ int fibo(int n){
   }elif(n == 0){
     return 0;
   }
-  print("f:");
-  print(n);
-  print(" = ");
   int a = fibo(n - 1);
   int b = fibo(n - 2);
+  print("f");
+  print(n);
+  print(" = ");
   print(a);
   print(" + ");
   print(b);

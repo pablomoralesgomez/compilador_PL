@@ -49,7 +49,7 @@ print						{return PRINT;}
 -?[0-9]+\.[0-9]*			{yylval.fl = atof(yytext);return LIT_FLOAT;}
 \'.\'						{yylval.ch = yytext[1];return LIT_CHAR;}
 
-\"[^"']*\"					{yylval.str = malloc(sizeof(char)*strlen(yytext)); strncpy(yylval.str, yytext+1, strlen(yytext)-2);return LIT_STRING;}
+\"[^"']*\"					{yylval.str = strdup(yytext);return LIT_STRING;}
 true						{return TRUE;}
 false						{return FALSE;}
 
