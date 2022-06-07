@@ -1,8 +1,7 @@
 
 header{
 	int sum(int x, float y, int z);
-	int f();
-	int suma();
+	int f(int gth);
 }
 
 int sum(int x, float y, int z) {
@@ -12,13 +11,11 @@ int sum(int x, float y, int z) {
 
 int main() {
 	
-	int x = 3;
-	float y2 = 9;
-	x = 4;
-	
-	int h = x + y2 * sum(8, 2.5, 9);
+	int h = 6 + sum(8, 2.5, f(0));
 
 }
 
-
+int f(int gth) {
+	return gth * 8;
+}
 
