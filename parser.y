@@ -44,7 +44,7 @@ struct reg_tipo{
 
 // Variables auxiliares para comprobar los parámetros de las funciones
 char* functionName = "";
-int functionNumberParam = -1;
+int functionNumberParam = 0;
 int checkingParamNumber = 0;
 
 // Variables auxiliares para contar el número de parámetros de un array y sus tipos
@@ -53,7 +53,8 @@ enum type tipo_array = -1;
 
 // Variable auxiliar para controlar el movimiento relativo de R7
 int r7Displacement = 0;
-
+int globalDisplacement = 0;
+ 
 // Variable auxiliar para controlar que los return son correctos y se encuentran en el lugar adecuado
 int returnScope1 = false;
 int returnCount = -1;
@@ -62,6 +63,9 @@ int funcTipo = -1;
 // Funciones auxiliares para contar cuantos registros hay ocupados y asi poder salvarlos en la llamada de una funcion
 int countOccupiedIntReg();
 int countOccupiedFloatReg();
+int countFloatReg = -1;
+int countIntReg = -1;
+
 
 void yyerror(char*);
 
@@ -144,7 +148,7 @@ struct nodo * find(char* id);
 
 %type <tip> typeFunction typePrimitive typeVariable
 %type <str> functionCall
-%type <expr> expression literals boolLiteral printeableThings
+%type <expr> expression literals boolLiteral
 
 %start program
 
@@ -644,7 +648,7 @@ array:		{longitud_array++;} expression				{if($2->tipo != tipo_array) yyerror("E
 // TODO comprobar uno a uno si los operadores son correctos y funcionan en q
 // FIXME string
 /********* REGLAS EXPRESIONES *********/
-expression:	functionCall									{
+expression: functionCall							{
 																struct nodo *puntero = search($1, funcion);
 
 																if (puntero->tipo == vacio) yyerror("Una funcion void no devuelve valor.");
@@ -656,6 +660,7 @@ expression:	functionCall									{
 																} else {
 																	ex->reg = 3;
 																}
+
 																ex->tipo = puntero->tipo;
 																$$ = ex;
 															}
@@ -790,42 +795,55 @@ boolLiteral:		TRUE								{
 																		$$ = res;
 																		};
 
-/* TODO: Hacer comprobaciones a la hora de llamar a la funcion: id correcta, num param, etc */
 
 /********* REGLAS LLAMADA A UNA FUNCION*********/
-functionCall: 		ID {
-							functionName = $1; functionNumberParam = countFunctionParameters($1);
+functionCall: 		ID 
+							{countIntReg = countOccupiedIntReg(); $<int1>$ = countIntReg; }
+							{countFloatReg = countOccupiedFloatReg(); $<int1>$ = countFloatReg;}
+							{$<int1>$=checkingParamNumber; checkingParamNumber = 0;}
+							{$<int1>$=functionNumberParam;  functionNumberParam = countFunctionParameters($1);}
+							{$<str>$=functionName; functionName = $1;}
 							
+							{$<int1>$=functionNumberParam;}
+							
+							{
 							// Guardamos los registros activos
-							int countIntReg = countOccupiedIntReg();
 							int countAux = 0;
 							
 							while(countAux < countIntReg) {
 								snprintf(line,lineSize, "\tR7 = R7 - 4;\t\t\t// Salvamos los registros enteros activos - l:%d\n", numlin);
 								gc(line);
 								
-								snprintf(line,lineSize, "\tI(R6 - %d) = R%d;\n", (r7Displacement + countAux +1) * 4, countAux);
+								globalDisplacement++;
+								snprintf(line,lineSize, "\tI(R6 - %d) = R%d;\n", (r7Displacement + globalDisplacement) * 4, countAux);
 								gc(line);
+								
+								//int_regs[countAux] = false;
 								
 								countAux++;
 							}
 							
 							countAux = 0;
-							int countFloatReg = countOccupiedFloatReg();
 							
 							while(countAux < countFloatReg) {
 								snprintf(line,lineSize, "\tR7 = R7 - 4;\t\t\t// Salvamos los registros coma flotante activos - l:%d\n", numlin);
 								gc(line);
 								
-								snprintf(line,lineSize, "\tF(R6 - %d) = RR%d;\n", (r7Displacement + countIntReg + countAux +1) * 4, countAux);
+								globalDisplacement++;
+								snprintf(line,lineSize, "\tF(R6 - %d) = RR%d;\n", (r7Displacement + globalDisplacement) * 4, countAux);
 								gc(line);
+								
+								//float_regs[countAux] = false;
 								
 								countAux++;
 							}
-	
+							
+							globalDisplacement += functionNumberParam + 2;
 							snprintf(line,lineSize, "\tR7 = R7 - %d;\t\t\t// Reservamos espacio en pila para los parametros, la etiqueta de regreso y la posicion actual de R6 (llamada a funcion) - l:%d\n", (functionNumberParam + 2) * 4, numlin);
 							gc(line);
 						}
+						
+						
 
 					'(' paramsFunctionCallWrapper ')' 	{
 																	struct nodo *puntero = search($1, funcion);
@@ -847,45 +865,58 @@ functionCall: 		ID {
 																	snprintf(line,lineSize, "L %d:\tR7 = R7 + 8;\t\t\t// Recuperamos el resto del espacio reservado para la etiqueta y la posicion de R6 - l:%d\n", tag, numlin);
 																	gc(line);	
 																	
-																	int countFloatReg = countOccupiedFloatReg();
-							
+																	
+																	int displacementParam = $<int1>7;
+																	globalDisplacement -= displacementParam + 2;
+																	countFloatReg = $<int1>3; 
+
 																	while(countFloatReg > 0) {
 																		snprintf(line,lineSize, "\tRR%d = F(R7);\t\t\t// Recuperamos el valor del registro salvado - l:%d\n", countFloatReg - 1, numlin);
 																		gc(line);
 																		
+																		globalDisplacement--;
 																		snprintf(line,lineSize, "\tR7 = R7 + 4;\n");
 																		gc(line);
 																		
+																		//float_regs[countFloatReg - 1] = false;
+																		
 																		countFloatReg--;
 																	}
-																											
-																	int countIntReg = countOccupiedIntReg();
+																	
+																	countIntReg = $<int1>2; 
 																	
 																	while(countIntReg > 0) {
 																		snprintf(line,lineSize, "\tR%d = I(R7);\t\t\t// Recuperamos el valor del registro salvado - l:%d\n", countIntReg - 1, numlin);
 																		gc(line);
 																		
+																		globalDisplacement--;
 																		snprintf(line,lineSize, "\tR7 = R7 + 4;\n");
 																		gc(line);
+																		
+																		//int_regs[countIntReg - 1] = false;
 																		
 																		countIntReg--;
 																	}
 
-																	functionNumberParam = -1;
-																	functionName = "";
-
+																	countFloatReg = -1;
+																	countIntReg = -1;
+																	
+																	checkingParamNumber = $<int1>4;
+																	functionNumberParam = $<int1>5;
+																	functionName = $<str>6;
+																	
 																	$$ = $1;
 																};
 
 paramsFunctionCallWrapper: 	/* empty */
 |					paramsFunctionCall {
 											if(checkingParamNumber < functionNumberParam) yyerror("El numero de parametros es menor que en el header.");
-											checkingParamNumber = 0;
 										};
 
 // FIXME free reg_tipo
 paramsFunctionCall: paramsFunctionCall ',' {checkingParamNumber++;} expression 		{
 																						struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
+																						
 																						if(param == NULL) yyerror("El numero de parametros no se corresponde con el especificado en el header.");
 																						if($4->tipo != param->tipo) yyerror("El tipo del parametro no corresponde con el del header");
 
@@ -900,6 +931,7 @@ paramsFunctionCall: paramsFunctionCall ',' {checkingParamNumber++;} expression 	
 																					}
 |	{checkingParamNumber++;} expression 											{
 																						struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
+																						
 																						if(param == NULL) yyerror("El numero de parametros no se corresponde con el especificado en el header.");
 																						if($2->tipo != param->tipo) yyerror("El tipo del parametro no corresponde con el del header");
 
