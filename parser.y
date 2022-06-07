@@ -327,6 +327,25 @@ statement: 			loop
 																							int stat = getStat();
 																							int tag = getTag();
 																							int address = getAddress(entero,-1);
+																							
+																							
+																							r7Displacement += 3;
+																							
+																							snprintf(line,lineSize, "\tR7 = R7 - 12;\t\t\t\t//Reservamos espacio para lo que pudiera haber almacenado en los registros R0, R1 y R2 - l:%d\n", numlin);
+																							gc(line);
+																							
+																							snprintf(line,lineSize, "\tI(R7) = R0;\t\t\t\t//Salvamos R0 - l:%d\n", numlin);
+																							gc(line);
+																							
+																							snprintf(line,lineSize, "\tI(R7 + 4) = R1;\t\t\t\t//Salvamos R1 - l:%d\n", numlin);
+																							gc(line);
+																							
+																							snprintf(line,lineSize, "\tI(R7 + 8) = R2;\t\t\t\t//Salvamos R2 - l:%d\n", numlin);
+																							gc(line);
+																							
+																							snprintf(line,lineSize, "\tR1 = R%d;\t\t\t\t\n", $3->reg);
+																							gc(line);
+																							
 																							if ($3->tipo == ristra){
 																								snprintf(line,lineSize, "\tR1 = R%d;\t\t\t\t\n", $3->reg);
 																								gc(line);
@@ -340,6 +359,7 @@ statement: 			loop
 																								snprintf(line,lineSize, "\tR1 = 0x%05x;\t\t\t\t\n", address);
 																								gc(line);
 																							}
+
 																							snprintf(line,lineSize, "\tR2 = R%d;\t\t\t\t\n", $3->reg);
 																							gc(line);
 																							lib_reg($3);
@@ -347,8 +367,26 @@ statement: 			loop
 																							gc(line);
 																							snprintf(line,lineSize, "\tGT(-12);\t\t\t\t\n");
 																							gc(line);
+																							
 																							snprintf(line,lineSize, "L %d:\t\t\t\t\t\t\n", tag);
 																							gc(line);
+																							
+																							snprintf(line,lineSize, "\tR0 = I(R7);\t\t\t\t//Recuperamos R0 - l:%d\n", numlin);
+																							gc(line);
+																							
+																							snprintf(line,lineSize, "\tR1 = I(R7 + 4);\t\t\t\t//Recuperamos R1 - l:%d\n", numlin);
+																							gc(line);
+																							
+																							snprintf(line,lineSize, "\tR2 = I(R7 + 8);\t\t\t\t//Recuperamos R2 - l:%d\n", numlin);
+																							gc(line);
+																							
+																							
+																							r7Displacement -= 3;
+																							
+																							snprintf(line,lineSize, "\tR7 = R7 + 12;\t\t\t\t//Recuperamos el espacio reservado para los registros R0, R1 y R2 - l:%d\n", numlin);
+																							gc(line);
+																							
+
 																							}
 |					CONTINUE ';'	{
 												if (co){
