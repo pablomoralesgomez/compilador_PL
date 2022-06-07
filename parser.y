@@ -150,7 +150,7 @@ struct nodo * find(char* id);
 
 %type <tip> typeFunction typePrimitive typeVariable
 %type <str> functionCall
-%type <expr> expression literals boolLiteral
+%type <expr> expression literals boolLiteral printeableThings
 
 %start program
 
@@ -329,15 +329,16 @@ statement: 			loop
 																							int address = getAddress(entero,-1);
 																							snprintf(line, lineSize, "STAT(%d)\n// print - l:%d\n", stat, numlin);
 																							gc(line);
-																							snprintf(line, lineSize, "\tSTR(0x%05x,\"1\");\n", address);
+																							snprintf(line, lineSize, "\tSTR(0x%05x,\"%%i\\n\");\n", address);
 																							gc(line);
 																							snprintf(line, lineSize, "CODE(%d)\n", stat);
 																							gc(line);
-																							snprintf(line,lineSize, "\tR0 = 0x%05x;\t\t\t\t\n", address);
+																							snprintf(line,lineSize, "\tR2 = R%d;\t\t\t\t\n", $3->reg);
 																							gc(line);
-																							snprintf(line,lineSize, "\tR1 = %d;\t\t\t\t\n", tag);
+																							lib_reg($3);
+																							snprintf(line,lineSize, "\tR1 = 0x%05x;\t\t\t\t\n", address);
 																							gc(line);
-																							snprintf(line,lineSize, "\tR2 = 5;\t\t\t\t\n");
+																							snprintf(line,lineSize, "\tR0 = %d;\t\t\t\t\n", tag);
 																							gc(line);
 																							snprintf(line,lineSize, "\tGT(-12);\t\t\t\t\n");
 																							gc(line);
@@ -382,7 +383,7 @@ statement: 			loop
 /* returnExpression */
 
 
-printeableThings:	expression	// FIXME free reg_tipo
+printeableThings:	expression	{$$ = $1;}
 |					LIT_STRING;					// FIXME print string
 
 
