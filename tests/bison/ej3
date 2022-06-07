@@ -1,7 +1,14 @@
-global{}
+global{
+  int x = 2;
+  int j = 3;
+  int k = 3;
+  int d = 3;
+  int i = 3;
+}
 
 header{}
 
 int main(){
-  print(5);
+  x = j + k;
+  print(2);
 }
