@@ -259,7 +259,7 @@ functiondcl: 		typeFunction ID {functionName = $2; functionNumberParam = countFu
 																					gc(line);
 																					
 																					if($1 != comaFlotante) {
-																						snprintf(line, lineSize, "\tR5 = I(R0);\t\t\t// Guardamos el valor resultado - l:%d\n", numlin);
+																						snprintf(line, lineSize, "\tR5 = R0;\t\t\t// Guardamos el valor resultado - l:%d\n", numlin);
 																					} else {
 																						snprintf(line, lineSize, "\tRR3 = F(RR0);\t\t\t// Guardamos el valor resultado - l:%d\n", numlin);
 																					}
@@ -370,9 +370,9 @@ statement: 			loop
 													gc(line);
 													
 													if($2->tipo != comaFlotante) {
-														snprintf(line, lineSize, "\tR5 = I(R0);\t\t\t// Guardamos el valor resultado - l:%d\n", numlin);
+														snprintf(line, lineSize, "\tR5 = R0;\t\t\t// Guardamos el valor resultado - l:%d\n", numlin);
 													} else {
-														snprintf(line, lineSize, "\tRR3 = F(RR0);\t\t\t// Guardamos el valor resultado - l:%d\n", numlin);
+														snprintf(line, lineSize, "\tRR3 = RR0;\t\t\t// Guardamos el valor resultado - l:%d\n", numlin);
 													}
 													gc(line);
 													
