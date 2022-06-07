@@ -150,7 +150,7 @@ struct nodo * find(char* id);
 
 %type <tip> typeFunction typePrimitive typeVariable
 %type <str> functionCall
-%type <expr> expression literals boolLiteral printeableThings
+%type <expr> expression literals boolLiteral
 
 %start program
 
@@ -250,7 +250,7 @@ functiondcl: 		typeFunction ID {functionName = $2; functionNumberParam = countFu
 										statementWrapper '}'					{	
 																					if(returnCount > 0 && $1 == vacio) yyerror("Las funciones tipo void no permiten el uso de return.");	
 																					if(returnCount < 1 && $1 != vacio) yyerror("La funcion no retorna ningún valor.");
-																					if(!returnScope1) yyerror("Puede que los return de esta funcion sean inaccesibles. Sitúe uno al final de la función para evitarlo.");
+																					if(!returnScope1 && $1 != vacio) yyerror("Puede que los return de esta funcion sean inaccesibles. Sitúe uno al final de la función para evitarlo.");
 																					
 																					snprintf(line, lineSize, "\tR7 = R6;\t\t\t// Eliminamos todas las variables locales y los param de pila - l:%d\n", numlin);
 																					gc(line);
@@ -759,7 +759,7 @@ expression: functionCall							{
 																					int address = getAddress(caracter, strlen($1));
 																					snprintf(line, lineSize, "STAT(%d)\n", stat);
 																					gc(line);
-																					snprintf(line, lineSize, "\tSTR(0x%05x,%s);\n", address,$1);
+																					snprintf(line, lineSize, "\tSTR(0x%05x,\"%s\");\n", address, $1);
 																					gc(line);
 																					snprintf(line, lineSize, "CODE(%d)\n", stat);
 																					gc(line);
@@ -769,6 +769,7 @@ expression: functionCall							{
 																					snprintf(line, lineSize, "\tR%d=0x%05x;\t\t\t\t// Literal string - l:%d\n", res->reg, address, numlin);
 																					gc(line);
 																					$$ = res;
+																					free($1);
 																					};
 
 literals: 			LIT_INT							{

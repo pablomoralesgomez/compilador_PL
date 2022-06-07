@@ -1,21 +1,12 @@
 global{
-  int x = 2;
-  int j = 3;
-  int k = 3;
-  int d = 3;
-  int i = 3;
 }
 
 header{
-  int sum(String x);
 }
 
 int main(){
-  x = j + k;
-  sum("hola");
-}
-
-int sum(String x) {
-  print(x);
-  return 0;
+  int q = 3;
+  String a = "asras";
+  int b = 33;
+  String c = "SRSRAS";
 }
