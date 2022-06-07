@@ -1,5 +1,5 @@
 global{
-  
+  int x = 8;
 }
 
 header{
@@ -10,13 +10,7 @@ int main(){
   int a = 0;
   int b = 1;
   int res = 0;
-  int x = 8;
-  #print("\n");
-  #print(x);
-  #print("\n");
-  #print("\nx : ");
-  #print(x);
-  for (int i = 0; i < x; i = i + 1){
+  for (int i = 2; i <= x; i += 1){
     res = a + b;
     a = b;
     b = res;
