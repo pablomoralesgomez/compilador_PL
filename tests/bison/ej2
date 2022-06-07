@@ -5,11 +5,11 @@ header{
 
 int sum(int x, int y, int z) {
     print(x);
-      print("\n");
+    print("\n");
     print(y);
-      print("\n");
+    print("\n");
     print(z);
-      print("\n");
+    print("\n");
     int res = x + y + z;
     return res;
 }

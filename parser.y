@@ -34,8 +34,8 @@ unsigned int z = 0x12000;
 unsigned int minPila = 0x8000;
 
 
-int int_regs[1  + 5];
-int float_regs[1 +3];
+int int_regs[1  + 4];
+int float_regs[1 +2];
 
 // Struct auxiliar para tratar con valores en la zona de expression
 struct reg_tipo{
@@ -408,18 +408,17 @@ statement: 			loop
 													gc(line);
 													
 													if($2->tipo != comaFlotante) {
-														snprintf(line, lineSize, "\tR5 = R0;\t\t\t// Guardamos el valor resultado - l:%d\n", numlin);
+														snprintf(line, lineSize, "\tR5 = R%d;\t\t\t// Guardamos el valor resultado - l:%d\n", $2->reg, numlin);
 													} else {
-														snprintf(line, lineSize, "\tRR3 = RR0;\t\t\t// Guardamos el valor resultado - l:%d\n", numlin);
+														snprintf(line, lineSize, "\tRR3 = RR%d;\t\t\t// Guardamos el valor resultado - l:%d\n", $2->reg, numlin);
 													}
 													gc(line);
-													
+													lib_reg($2);
 													snprintf(line, lineSize, "\tR0 = P(R7);\t\t\t// Recogemos el valor de la etiqueta para regresar a la rutina anterior - l:%d\n", numlin);
 													gc(line);
 													
 													snprintf(line, lineSize, "\tGT(R0);\t\t\t\t// Volvemos a la rutina anterior - l:%d\n", numlin);
 													gc(line);
-													lib_reg($2);
 												}
 |					functionCall ';';
 
@@ -653,6 +652,7 @@ variabledcl:	typePrimitive ID '=' expression ';'
 							                                gc(line);
 							                                snprintf(line, lineSize, "\tI(R6 - %d) = R%d;\t\t\t// Declaramos la variable %s l:%d\n", 4 * r7Displacement, $4->reg, $2, numlin);
 							                                gc(line);
+							                                lib_reg($4);
 																						}
 																					}else{
 																						yyerror("No unta ristra");
@@ -712,14 +712,15 @@ expression: functionCall							{
 																if (puntero->tipo == vacio) yyerror("Una funcion void no devuelve valor.");
 
 																struct reg_tipo *ex = malloc(sizeof(struct reg_tipo));
-																
-																if(puntero->tipo != comaFlotante) {
-																	ex->reg = 5;
-																} else {
-																	ex->reg = 3;
-																}
-
 																ex->tipo = puntero->tipo;
+																ex->reg = assign_reg($$->tipo);
+																if(puntero->tipo != comaFlotante) {
+	                                snprintf(line, lineSize, "\tR%d = R5;\t\t\t// Recogemos el resultado l:%d\n", ex->reg, numlin);
+	                                gc(line);
+																} else {
+                                	snprintf(line, lineSize, "\tRR%d = RR3;\t\t\t// Recogemos el resultado l:%d\n", ex->reg, numlin);
+	                                gc(line);
+																}
 																$$ = ex;
 															}
 |					ID '[' LIT_INT ']'						{
@@ -1050,7 +1051,7 @@ int getTag(){
 }
 
 void gc(char* text){
-	//printf("%s",text);
+	printf("%s",text);
 	fputs(text, outQ);
 }
 
