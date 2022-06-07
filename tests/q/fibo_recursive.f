@@ -20,11 +20,11 @@ int fibo(int n){
   }elif(n == 0){
     return 0;
   }
+  int a = fibo(n - 1);
+  int b = fibo(n - 2);
   print("f:");
   print(n);
   print(" = ");
-  int a = fibo(n - 1);
-  int b = fibo(n - 2);
   print(a);
   print(" + ");
   print(b);

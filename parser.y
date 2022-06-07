@@ -354,7 +354,7 @@ statement: 			loop
 																								int stat = getStat();
 																								snprintf(line, lineSize, "STAT(%d)\n", stat);
 																								gc(line);
-																								snprintf(line, lineSize, "\tSTR(0x%05x,\"%%i\\n\");\n", address);
+																								snprintf(line, lineSize, "\tSTR(0x%05x,\"%%i\");\n", address);
 																								gc(line);
 																								snprintf(line, lineSize, "CODE(%d)\n", stat);
 																								gc(line);
