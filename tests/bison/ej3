@@ -1,14 +1,14 @@
 global{
-  int x = 2;
-  int j = 3;
-  int k = 3;
-  int d = 3;
-  int i = 3;
 }
 
-header{}
+header{
+}
 
 int main(){
-  x = j + k;
-  print("hola");
+  int q = 3;
+  String pri = "soy la primera string\n";
+  int b = 33;
+  String seg = "Im the second string\n";
+  seg = pri;
+  print(seg);
 }

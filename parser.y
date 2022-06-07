@@ -150,7 +150,7 @@ struct nodo * find(char* id);
 
 %type <tip> typeFunction typePrimitive typeVariable
 %type <str> functionCall
-%type <expr> expression literals boolLiteral printeableThings
+%type <expr> expression literals boolLiteral
 
 %start program
 
@@ -324,7 +324,8 @@ statement: 			loop
 												}
 												}
 |					PRINT '(' expression ')' ';' {
-																							int stat = getStat();
+																							snprintf(line,lineSize, "\t\t\t\t\t\t// print - l:%d\n", numlin);
+																							gc(line);
 																							int tag = getTag();
 																							int address = getAddress(entero,-1);
 																							
@@ -347,28 +348,27 @@ statement: 			loop
 																							gc(line);
 																							
 																							if ($3->tipo == ristra){
-																								snprintf(line,lineSize, "\tR1 = R%d;\t\t\t\t\n", $3->reg);
+																								snprintf(line,lineSize, "\tR1 = R%d;\n", $3->reg);
 																								gc(line);
 																							}else{
-																								snprintf(line, lineSize, "STAT(%d)\n// print - l:%d\n", stat, numlin);
+																								int stat = getStat();
+																								snprintf(line, lineSize, "STAT(%d)\n", stat);
 																								gc(line);
 																								snprintf(line, lineSize, "\tSTR(0x%05x,\"%%i\\n\");\n", address);
 																								gc(line);
 																								snprintf(line, lineSize, "CODE(%d)\n", stat);
 																								gc(line);
-																								snprintf(line,lineSize, "\tR1 = 0x%05x;\t\t\t\t\n", address);
+																								snprintf(line,lineSize, "\tR1 = 0x%05x;\n", address);
 																								gc(line);
 																							}
-
-																							snprintf(line,lineSize, "\tR2 = R%d;\t\t\t\t\n", $3->reg);
+																							snprintf(line,lineSize, "\tR2 = R%d;\n", $3->reg);
 																							gc(line);
 																							lib_reg($3);
-																							snprintf(line,lineSize, "\tR0 = %d;\t\t\t\t\n", tag);
+																							snprintf(line,lineSize, "\tR0 = %d;\n", tag);
 																							gc(line);
-																							snprintf(line,lineSize, "\tGT(-12);\t\t\t\t\n");
+																							snprintf(line,lineSize, "\tGT(-12);\n");
 																							gc(line);
-																							
-																							snprintf(line,lineSize, "L %d:\t\t\t\t\t\t\n", tag);
+																							snprintf(line,lineSize, "L %d:\n", tag);
 																							gc(line);
 																							
 																							snprintf(line,lineSize, "\tR0 = I(R7);\t\t\t\t//Recuperamos R0 - l:%d\n", numlin);
@@ -571,7 +571,6 @@ varAssign: 	ID '=' expression				{
 |					ID ASSIGN_DIV expression	{
 																		asignaciones($3, $1, adivi);
 																		};
-//|					LIT_STRING 											// TODO arrays
 //|					arrays 											// TODO arrays
 
 
@@ -605,10 +604,10 @@ variabledcl:	typePrimitive ID '=' expression ';'
 																snprintf(line, lineSize, "\tR%d=0x%05x;\t\t\t\t// Guardamos en la variable global %s su valor - l:%d\n", ad->reg, puntero->address,$2, numlin);
 																gc(line);
 																if ($4->tipo == comaFlotante){
-																	snprintf(line, lineSize, "\tF(R%d) = RR%d;\t\t\t\t\n", ad->reg, $4->reg);
+																	snprintf(line, lineSize, "\tF(R%d) = RR%d;\n", ad->reg, $4->reg);
 																	gc(line);
 																}else{
-																	snprintf(line, lineSize, "\tI(R%d) = R%d;\t\t\t\t\n", ad->reg, $4->reg);
+																	snprintf(line, lineSize, "\tI(R%d) = R%d;\n", ad->reg, $4->reg);
 																	gc(line);
 																}
 																lib_reg(ad);
@@ -644,7 +643,21 @@ variabledcl:	typePrimitive ID '=' expression ';'
 															}
 															lib_reg($4);
 														}
-|					STRING ID '=' LIT_STRING ';'
+|					STRING ID '=' expression ';'	{
+																					if($4->tipo == ristra) {
+																						if (scope == 0){
+																						}else{
+																							r7Displacement++;
+                                							adde($2, ristra, local, scope, (r7Displacement * 4), NULL);
+							                                snprintf(line, lineSize, "\tR7 = R7 - 4;\t\t\t// Reservamos espacio en pila para la variable %s l:%d\n", $2, numlin);
+							                                gc(line);
+							                                snprintf(line, lineSize, "\tI(R6 - %d) = R%d;\t\t\t// Declaramos la variable %s l:%d\n", 4 * r7Displacement, $4->reg, $2, numlin);
+							                                gc(line);
+																						}
+																					}else{
+																						yyerror("No unta ristra");
+																					}
+																				}
 |					arraydcl;
 
 
@@ -783,7 +796,7 @@ expression: functionCall							{
 																					int address = getAddress(caracter, strlen($1));
 																					snprintf(line, lineSize, "STAT(%d)\n", stat);
 																					gc(line);
-																					snprintf(line, lineSize, "\tSTR(0x%05x,%s);\n", address,$1);
+																					snprintf(line, lineSize, "\tSTR(0x%05x,\"%s\");\n", address, $1);
 																					gc(line);
 																					snprintf(line, lineSize, "CODE(%d)\n", stat);
 																					gc(line);
@@ -793,6 +806,7 @@ expression: functionCall							{
 																					snprintf(line, lineSize, "\tR%d=0x%05x;\t\t\t\t// Literal string - l:%d\n", res->reg, address, numlin);
 																					gc(line);
 																					$$ = res;
+																					free($1);
 																					};
 
 literals: 			LIT_INT							{
