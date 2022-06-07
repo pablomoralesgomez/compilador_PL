@@ -323,21 +323,26 @@ statement: 			loop
 													yyerror("Break fuera de bucle");
 												}
 												}
-|					PRINT '(' printeableThings ')' ';' {
+|					PRINT '(' expression ')' ';' {
 																							int stat = getStat();
 																							int tag = getTag();
 																							int address = getAddress(entero,-1);
-																							snprintf(line, lineSize, "STAT(%d)\n// print - l:%d\n", stat, numlin);
-																							gc(line);
-																							snprintf(line, lineSize, "\tSTR(0x%05x,\"%%i\\n\");\n", address);
-																							gc(line);
-																							snprintf(line, lineSize, "CODE(%d)\n", stat);
-																							gc(line);
+																							if ($3->tipo == ristra){
+																								snprintf(line,lineSize, "\tR1 = R%d;\t\t\t\t\n", $3->reg);
+																								gc(line);
+																							}else{
+																								snprintf(line, lineSize, "STAT(%d)\n// print - l:%d\n", stat, numlin);
+																								gc(line);
+																								snprintf(line, lineSize, "\tSTR(0x%05x,\"%%i\\n\");\n", address);
+																								gc(line);
+																								snprintf(line, lineSize, "CODE(%d)\n", stat);
+																								gc(line);
+																								snprintf(line,lineSize, "\tR1 = 0x%05x;\t\t\t\t\n", address);
+																								gc(line);
+																							}
 																							snprintf(line,lineSize, "\tR2 = R%d;\t\t\t\t\n", $3->reg);
 																							gc(line);
 																							lib_reg($3);
-																							snprintf(line,lineSize, "\tR1 = 0x%05x;\t\t\t\t\n", address);
-																							gc(line);
 																							snprintf(line,lineSize, "\tR0 = %d;\t\t\t\t\n", tag);
 																							gc(line);
 																							snprintf(line,lineSize, "\tGT(-12);\t\t\t\t\n");
@@ -379,12 +384,6 @@ statement: 			loop
 													lib_reg($2);
 												}
 |					functionCall ';';
-
-/* returnExpression */
-
-
-printeableThings:	expression	{$$ = $1;}
-|					LIT_STRING;					// FIXME print string
 
 
 /********* REGLAS DECLARACIÓN DE BUCLES *********/
@@ -740,7 +739,23 @@ expression: functionCall							{
 																					$$ = aritmeticas($1, $3, divi);
 																					}
 |					expression '^' expression 			// TODO crear función interna
-|					expression '%' expression; 			// TODO crear función interna
+|					expression '%' expression				// TODO crear función interna
+|					LIT_STRING											{
+																					int stat = getStat();
+																					int address = getAddress(caracter, strlen($1));
+																					snprintf(line, lineSize, "STAT(%d)\n", stat);
+																					gc(line);
+																					snprintf(line, lineSize, "\tSTR(0x%05x,%s);\n", address,$1);
+																					gc(line);
+																					snprintf(line, lineSize, "CODE(%d)\n", stat);
+																					gc(line);
+																					struct reg_tipo *res =  malloc(sizeof(struct reg_tipo));
+																					res->reg = assign_reg(ristra);
+																					res->tipo = ristra;
+																					snprintf(line, lineSize, "\tR%d=0x%05x;\t\t\t\t// Literal string - l:%d\n", res->reg, address, numlin);
+																					gc(line);
+																					$$ = res;
+																					};
 
 literals: 			LIT_INT							{
 																		int reg = assign_reg(entero);
@@ -1493,6 +1508,12 @@ int getAddress(enum type tipo, int length){
 
 	if (length == -1){
 		z = z - octetos;
+		if (z < minPila){
+			yyerror("Sin espacio en la memoria estática");
+		}
+		return z;
+	}else{
+		z = z - octetos * length;
 		if (z < minPila){
 			yyerror("Sin espacio en la memoria estática");
 		}
