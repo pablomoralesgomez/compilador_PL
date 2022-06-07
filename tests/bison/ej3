@@ -6,9 +6,16 @@ global{
   int i = 3;
 }
 
-header{}
+header{
+  int sum(String x);
+}
 
 int main(){
   x = j + k;
-  print("hola");
+  sum("hola");
+}
+
+int sum(String x) {
+  print(x);
+  return 0;
 }

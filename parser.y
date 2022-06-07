@@ -606,7 +606,21 @@ variabledcl:	typePrimitive ID '=' expression ';'
 															}
 															lib_reg($4);
 														}
-|					STRING ID '=' LIT_STRING ';'
+|					STRING ID '=' expression ';'	{
+																					if($4->tipo == ristra) {
+																						if (scope == 0){
+																						}else{
+																							r7Displacement++;
+                                							adde($2, ristra, local, scope, (r7Displacement * 4), NULL);
+							                                snprintf(line, lineSize, "\tR7 = R7 - 4;\t\t\t// Reservamos espacio en pila para la variable %s l:%d\n", $2, numlin);
+							                                gc(line);
+							                                snprintf(line, lineSize, "\tI(R6 - %d) = R%d;\t\t\t// Declaramos la variable %s l:%d\n", 4 * r7Displacement, $4->reg, $2, numlin);
+							                                gc(line);
+																						}
+																					}else{
+																						yyerror("No unta ristra");
+																					}
+																				}
 |					arraydcl;
 
 
