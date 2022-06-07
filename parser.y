@@ -324,7 +324,8 @@ statement: 			loop
 												}
 												}
 |					PRINT '(' expression ')' ';' {
-																							int stat = getStat();
+																							snprintf(line,lineSize, "\t\t\t\t\t\t// print - l:%d\n", numlin);
+																							gc(line);
 																							int tag = getTag();
 																							int address = getAddress(entero,-1);
 																							
@@ -350,7 +351,8 @@ statement: 			loop
 																								snprintf(line,lineSize, "\tR1 = R%d;\n", $3->reg);
 																								gc(line);
 																							}else{
-																								snprintf(line, lineSize, "STAT(%d)\n// print - l:%d\n", stat, numlin);
+																								int stat = getStat();
+																								snprintf(line, lineSize, "STAT(%d)\n", stat);
 																								gc(line);
 																								snprintf(line, lineSize, "\tSTR(0x%05x,\"%%i\\n\");\n", address);
 																								gc(line);
