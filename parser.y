@@ -86,6 +86,8 @@ int getAddress(enum type tipo, int length);
 int getOctetos(enum type tipo);
 struct reg_tipo * evalID(char* id);
 
+int yylex();
+
 struct nodo * find(char* id);
 
 %}
@@ -356,7 +358,7 @@ statement: 			loop
 																								if ($3->tipo == caracter) {
 																									snprintf(line, lineSize, "\tSTR(0x%05x,\"%%c\");\n", address);
 																								} else {
-																									snprintf(line, lineSize, "\tSTR(0x%05x,\"%%i\");\n", address);
+																									snprintf(line, lineSize, "\tSTR(0x%05x,\"%%f\");\n", address);
 																								}						
 																								gc(line);
 																								
