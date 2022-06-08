@@ -33,6 +33,9 @@ int statCount = 0;
 unsigned int z = 0x12000;
 unsigned int minPila = 0x8000;
 
+unsigned int falseAd;
+unsigned int trueAd;
+
 
 int int_regs[1  + 4];
 int float_regs[1 +2];
@@ -168,9 +171,7 @@ struct nodo * find(char* id);
 
 %%	/********* REGLAS GRAMATICALES *********/
 
-program: 			{snprintf(line, lineSize, "L 0:\t\t\t\t\t\t// Inicio del programa, inialización de globales\n");
-					gc(line);}
-					global
+program: 	global
 					{snprintf(line, lineSize, "\tGT(1);\t\t\t\t\t// Saltamos al main\n");
 					gc(line);}
 					header functionArea;
@@ -335,20 +336,36 @@ statement: 			loop
 																							snprintf(line,lineSize, "\tR7 = R7 - 12;\t\t\t\t//Reservamos espacio para lo que pudiera haber almacenado en los registros R0, R1 y R2 - l:%d\n", numlin);
 																							gc(line);
 																							
-																							snprintf(line,lineSize, "\tI(R7) = R0;\t\t\t\t//Salvamos R0 - l:%d\n", numlin);
+																							snprintf(line,lineSize, "\tI(R7) = R0;\t\t\t\t//Salvamos R0 - l:%d\n", numlin);	// R0 is used for the return tag
 																							gc(line);
 																							
-																							snprintf(line,lineSize, "\tI(R7 + 4) = R1;\t\t\t\t//Salvamos R1 - l:%d\n", numlin);
+																							snprintf(line,lineSize, "\tI(R7 + 4) = R1;\t\t\t\t//Salvamos R1 - l:%d\n", numlin);	// R1 is used for the string address
 																							gc(line);
 																							
-																							snprintf(line,lineSize, "\tI(R7 + 8) = R2;\t\t\t\t//Salvamos R2 - l:%d\n", numlin);
+																							snprintf(line,lineSize, "\tI(R7 + 8) = R2;\t\t\t\t//Salvamos R2 - l:%d\n", numlin);	// R2 is used for the value to print
 																							gc(line);
 																							
-																							snprintf(line,lineSize, "\tR1 = R%d;\t\t\t\t\n", $3->reg);
-																							gc(line);		// FIXME
-																							snprintf(line,lineSize, "\tR2 = R%d;\n", $3->reg);
-																							gc(line);
-																							if ($3->tipo != ristra){
+
+																							if ($3->tipo == ristra){
+																								snprintf(line,lineSize, "\tR1 = R%d;\n", $3->reg);
+																								gc(line);
+																								snprintf(line,lineSize, "\tR2 = 0;\n");
+																								gc(line);
+																							}else if ($3->tipo == boolean){
+																								int gotoPrint = getTag();
+																								snprintf(line,lineSize, "\tR2 = R%d;\t\t\t\t// print bool - l:%d\n", $3->reg,numlin);
+																								gc(line);
+																								snprintf(line,lineSize, "\tR1 = 0x%05x;\n", falseAd);
+																								gc(line);
+																								snprintf(line,lineSize, "\tIF (!R2) GT(%d);\n", gotoPrint);
+																								gc(line);
+																								snprintf(line,lineSize, "\tR1 = 0x%05x;\n", trueAd);
+																								gc(line);
+																								snprintf(line,lineSize, "L %d:\n", gotoPrint);
+																								gc(line);
+																							}else{
+																								snprintf(line,lineSize, "\tR2 = R%d;\n", $3->reg);
+																								gc(line);
 																								int stat = getStat();
 																								snprintf(line, lineSize, "STAT(%d)\n", stat);
 																								gc(line);
@@ -357,7 +374,7 @@ statement: 			loop
 																									snprintf(line, lineSize, "\tSTR(0x%05x,\"%%c\");\n", address);
 																								} else {
 																									snprintf(line, lineSize, "\tSTR(0x%05x,\"%%i\");\n", address);
-																								}						
+																								}	
 																								gc(line);
 																								
 																								snprintf(line, lineSize, "CODE(%d)\n", stat);
@@ -593,12 +610,21 @@ variabledcl:	typePrimitive ID '=' expression ';'
 																struct nodo *puntero = search($2, global);
 
 																int stat = getStat();
-																snprintf(line, lineSize, "STAT(%d)\n", stat);
-																gc(line);
-																snprintf(line, lineSize, "\tDAT(0x%05x,%c,0);\t\t\t// Guardamos espacio variable global %s - l:%d\n", puntero->address, getLetter($1), $2, numlin);
-																gc(line);
-																snprintf(line, lineSize, "CODE(%d)\n", stat);
-																gc(line);
+																if ($1 == comaFlotante){
+																	snprintf(line, lineSize, "STAT(%d)\n", stat);
+																	gc(line);
+																	snprintf(line, lineSize, "\tDAT(0x%05x,%c,0.0);\t\t\t// Guardamos espacio variable global %s - l:%d\n", puntero->address, getLetter($1), $2, numlin);
+																	gc(line);
+																	snprintf(line, lineSize, "CODE(%d)\n", stat);
+																	gc(line);
+																}else{
+																	snprintf(line, lineSize, "STAT(%d)\n", stat);
+																	gc(line);
+																	snprintf(line, lineSize, "\tDAT(0x%05x,%c,0);\t\t\t// Guardamos espacio variable global %s - l:%d\n", puntero->address, getLetter($1), $2, numlin);
+																	gc(line);
+																	snprintf(line, lineSize, "CODE(%d)\n", stat);
+																	gc(line);
+																}
 																
 
 																struct reg_tipo *ad = malloc(sizeof(struct reg_tipo));
@@ -607,10 +633,10 @@ variabledcl:	typePrimitive ID '=' expression ';'
 																snprintf(line, lineSize, "\tR%d=0x%05x;\t\t\t\t// Guardamos en la variable global %s su valor - l:%d\n", ad->reg, puntero->address,$2, numlin);
 																gc(line);
 																if ($4->tipo == comaFlotante){
-																	snprintf(line, lineSize, "\tF(R%d) = RR%d;\n", ad->reg, $4->reg);
+																	snprintf(line, lineSize, "\t%c(R%d) = RR%d;\n", getLetter($1),ad->reg, $4->reg);
 																	gc(line);
 																}else{
-																	snprintf(line, lineSize, "\tI(R%d) = R%d;\n", ad->reg, $4->reg);
+																	snprintf(line, lineSize, "\t%c(R%d) = R%d;\n", getLetter($1),ad->reg, $4->reg);
 																	gc(line);
 																}
 																lib_reg(ad);
@@ -1170,6 +1196,23 @@ int main(int argc, char** argv) {
 	gc(line);
 	snprintf(line,lineSize, "BEGIN\n");
 	gc(line);
+	snprintf(line, lineSize, "L 0:\t\t\t\t\t\t// Inicio del programa\n");
+	gc(line);
+	// Store strings for false and true
+	char falseStr[] = "false";
+	char trueStr[] = "true";
+	falseAd = getAddress(caracter, strlen(falseStr));
+	trueAd = getAddress(caracter, strlen(trueStr));
+	int boolStat = getStat();
+	snprintf(line, lineSize, "STAT(%d)\n", boolStat);
+	gc(line);
+	snprintf(line, lineSize, "\tSTR(0x%05x,\"%s\");\n", falseAd, falseStr);
+	gc(line);
+	snprintf(line, lineSize, "\tSTR(0x%05x,\"%s\");\n", trueAd, trueStr);
+	gc(line);
+	snprintf(line, lineSize, "CODE(%d)\n", boolStat);
+	gc(line);
+
 	yyparse();
 	snprintf(line,lineSize, "END\n");
 	gc(line);
