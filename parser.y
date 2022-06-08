@@ -206,7 +206,7 @@ param:				typeVariable ID									{
 																			if(strcmp($2, param->id) != 0) yyerror("El nombre del parametro no corresponde con el del header");
 																		}
 																	}
-|					typePrimitive '[' ']' ID;						/* TODO: AÑADIR ARRAYS A LA PILA */
+|					typePrimitive '[' ']' ID;	// NOT IMPLEMENTED
 
 
 
@@ -237,7 +237,7 @@ functiondcl: 		typeFunction ID {functionName = $2; functionNumberParam = countFu
 
 											puntero = puntero->param;
 											while(puntero != NULL) {
-												adde(puntero->id, puntero->tipo, local, scope, puntero->address, puntero->array); // FIXME cuando es array el tipo no es el del puntero, sino entero
+												adde(puntero->id, puntero->tipo, local, scope, puntero->address, puntero->array);
 
 												puntero = puntero->param;
 											}
@@ -311,7 +311,6 @@ main:           	INT MAIN '(' ')' '{'
 statementWrapper: 	/* empty */
 |					statementWrapper statement;
 
-/* FIXME CONTINUE BREAK RETURN */
 statement: 			loop
 |					conditional
 |					variabledcl
@@ -445,7 +444,7 @@ statement: 			loop
 /********* REGLAS DECLARACIÓN DE BUCLES *********/
 loop: 				forLoop
 |					whileLoop
-|					DO whileLoop;		// FIXME
+|					DO whileLoop;		// NOT IMPLEMENTED
 
 /* HACK variabledcl already has ';' */
 forLoop: 	{$<int1>$ = co;}//1 								//Store previous continue tag
@@ -591,9 +590,7 @@ varAssign: 	ID '=' expression				{
 |					ID ASSIGN_DIV expression	{
 																		asignaciones($3, $1, adivi);
 																		};
-//|					arrays 											// TODO arrays
-
-
+//|					arrays 											// NOT IMPLEMENTED
 
 
 /********* REGLAS DECLARACIÓN DE VARIABLES *********/
@@ -691,8 +688,7 @@ variabledcl:	typePrimitive ID '=' expression ';'
 |					arraydcl;
 
 
-
-// TODO Pensar que hacer con los arrays en pila
+// NOT IMPLEMENTED
 
 /********* REGLAS DECLARACIÓN DE ARRAY *********/
 arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' {
@@ -727,14 +723,11 @@ arraydcl:			typePrimitive '[' LIT_INT ']' ID ';' {
 arrayWrapper:	/* empty */
 |					array;
 
-// FIXME free reg_tipo
 array:		{longitud_array++;} expression				{if($2->tipo != tipo_array) yyerror("El valor del elemento del array es de tipo distinto al declarado para el array.");}
 |			array ',' {longitud_array++;} expression 	{if($4->tipo != tipo_array) yyerror("El valor del elemento del array es de tipo distinto al declarado para el array.");};
 
 
-// TODO string equals string
-// TODO comprobar uno a uno si los operadores son correctos y funcionan en q
-// FIXME string
+
 /********* REGLAS EXPRESIONES *********/
 expression: functionCall							{
 																struct nodo *puntero = search($1, funcion);
@@ -759,8 +752,8 @@ expression: functionCall							{
 																int reg = assign_reg(puntero->tipo);
 																struct reg_tipo *ex =  malloc(sizeof(struct reg_tipo));
 																ex->reg = reg;
-																ex->tipo = puntero->tipo; // FIXME if array it should return caracter, not ristra
-																// TODO collect from array
+																ex->tipo = puntero->tipo;
+																// NOT IMPLEMENTED
 															}
 |					ID															{
 																						$$ = evalID($1);
@@ -820,8 +813,8 @@ expression: functionCall							{
 |					expression '/' expression 			{
 																					$$ = aritmeticas($1, $3, divi);
 																					}
-|					expression '^' expression 			// TODO crear función interna
-|					expression '%' expression				// TODO crear función interna
+|					expression '^' expression 			// NOT IMPLEMENTED
+|					expression '%' expression				// NOT IMPLEMENTED
 |					LIT_STRING											{
 																					int stat = getStat();
 																					int len = strlen($1);
@@ -1012,7 +1005,6 @@ paramsFunctionCallWrapper: 	/* empty */
 											if(checkingParamNumber < functionNumberParam) yyerror("El numero de parametros es menor que en el header.");
 										};
 
-// FIXME free reg_tipo
 paramsFunctionCall: paramsFunctionCall ',' {checkingParamNumber++;} expression 		{
 																						struct nodo * param = getParameterByNumber(functionName, checkingParamNumber);
 																						
@@ -1265,7 +1257,7 @@ struct reg_tipo * igualdades(struct reg_tipo* izq, struct reg_tipo* der, enum op
 		res = izq;
 	}else if(izq->tipo == comaFlotante && der->tipo == comaFlotante){
 		int reg = assign_reg(entero);
-		snprintf(line,lineSize, "\tR%d=RR%d%sRR%d;%s\n",reg ,izq->reg,op,der->reg,comment); // FIXME get register
+		snprintf(line,lineSize, "\tR%d=RR%d%sRR%d;%s\n",reg ,izq->reg,op,der->reg,comment);
 		lib_reg(der);
 		lib_reg(izq);
 		struct reg_tipo *aux =  malloc(sizeof(struct reg_tipo));
