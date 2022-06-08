@@ -358,7 +358,7 @@ statement: 			loop
 																								if ($3->tipo == caracter) {
 																									snprintf(line, lineSize, "\tSTR(0x%05x,\"%%c\");\n", address);
 																								} else {
-																									snprintf(line, lineSize, "\tSTR(0x%05x,\"%%f\");\n", address);
+																									snprintf(line, lineSize, "\tSTR(0x%05x,\"%%i\");\n", address);
 																								}						
 																								gc(line);
 																								
