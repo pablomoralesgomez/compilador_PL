@@ -352,8 +352,14 @@ statement: 			loop
 																								int stat = getStat();
 																								snprintf(line, lineSize, "STAT(%d)\n", stat);
 																								gc(line);
-																								snprintf(line, lineSize, "\tSTR(0x%05x,\"%%i\");\n", address);
+																								
+																								if ($3->tipo == caracter) {
+																									snprintf(line, lineSize, "\tSTR(0x%05x,\"%%c\");\n", address);
+																								} else {
+																									snprintf(line, lineSize, "\tSTR(0x%05x,\"%%i\");\n", address);
+																								}						
 																								gc(line);
+																								
 																								snprintf(line, lineSize, "CODE(%d)\n", stat);
 																								gc(line);
 																								snprintf(line,lineSize, "\tR1 = 0x%05x;\n", address);
