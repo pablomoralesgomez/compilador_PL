@@ -1075,7 +1075,7 @@ int getTag(){
 }
 
 void gc(char* text){
-	printf("%s",text);
+	//printf("%s",text);
 	fputs(text, outQ);
 }
 
