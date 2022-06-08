@@ -5,6 +5,8 @@
 
 int numlin = 1;
 int scope = 0;
+
+void yyerror(char*);
 %}
 
 

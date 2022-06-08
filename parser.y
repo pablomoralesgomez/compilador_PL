@@ -89,6 +89,8 @@ int getAddress(enum type tipo, int length);
 int getOctetos(enum type tipo);
 struct reg_tipo * evalID(char* id);
 
+int yylex();
+
 struct nodo * find(char* id);
 
 %}
