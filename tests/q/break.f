@@ -8,7 +8,7 @@ header{
 int main(){
   while(count < 3){
     print("Nested 1\n");
-    while(true){
+    while(not false){
       print("\tNested 2\n");
       while(true){
         print("\t\tNested 3\n");
