@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include "string.h"
 #include "tab.h"
-#include "Qlib.h"
 
 extern int numlin;
 extern int scope;
