@@ -771,7 +771,7 @@ expression: functionCall							{
 																					$$ = igualdades($1, $3, mayor_igual);
 																					}
 |					expression '>' expression				{
-																					$$ = igualdades($1, $3, menor);
+																					$$ = igualdades($1, $3, mayor);
 																					}
 |					expression '<' expression 			{
 																					$$ = igualdades($1, $3, menor);
@@ -1355,6 +1355,7 @@ int asignaciones(struct reg_tipo* reg, char* id, enum op_asignaciones operator){
 				
 			}
 			gc(line);
+			lib_reg(reg);
 			
 			return 0;
 		} else {
@@ -1453,7 +1454,8 @@ int asignaciones(struct reg_tipo* reg, char* id, enum op_asignaciones operator){
 				
 			}
 			gc(line);
-			
+			lib_reg(reg);
+
 			return 0;
 		} else {
 		
