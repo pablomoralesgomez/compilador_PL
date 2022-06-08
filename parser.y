@@ -1248,7 +1248,7 @@ struct reg_tipo * logicos(struct reg_tipo* izq, struct reg_tipo* der, enum op_lo
 	char op[2];
 	if (operator == and){
 		strncpy(op, "&&",sizeof(op));
-	}else if (operator != or){
+	}else if (operator == or){
 		strncpy(op, "||",sizeof(op));
 	}else{
 		yyerror("Error de compilador en lógicos");
