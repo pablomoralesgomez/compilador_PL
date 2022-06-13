@@ -30,7 +30,6 @@ int fi = 0;
 int statCount = 0;
 
 unsigned int z = 0x12000;
-unsigned int minPila = 0x8000;
 
 unsigned int falseAd;
 unsigned int trueAd;
@@ -287,9 +286,6 @@ main:           	INT MAIN '(' ')' '{'
 						gc(line);
 
 						snprintf(line, lineSize, "L 1:\n");
-						gc(line);
-
-						snprintf(line, lineSize, "\tR7 = 0x%05x;// Reservamos espacio en la memoria estática\n", minPila);
 						gc(line);
 
 						snprintf(line, lineSize, "\tR6 = R7;\n");
@@ -557,12 +553,7 @@ ifCond: 			{$<int1>$ = getTag();}	// if not
 							gc(line);
 							lib_reg($4);
 							}
-							'{' statementWrapper
-							{
-							snprintf(line,lineSize, "\tGT(%d);\t\t\t\t// exit if - l:%d\n",fi,numlin);
-							gc(line);
-							}
-							'}'
+							'{' statementWrapper '}'
 							{
 							
 							int erasedElements = deleteScope(scope);
@@ -572,6 +563,9 @@ ifCond: 			{$<int1>$ = getTag();}	// if not
 								gc(line);
 							}
 							
+							snprintf(line,lineSize, "\tGT(%d);\t\t\t\t// exit if - l:%d\n",fi,numlin);
+							gc(line);
+
 							snprintf(line,lineSize, "L %d:\t\t\t\t\t\t// if not - l:%d\n", $<int1>1,numlin);
 							gc(line);
 							};
@@ -587,21 +581,18 @@ elifCond: 			/* empty */
 					gc(line);
 					lib_reg($5);
 					}
-					'{' statementWrapper
+					'{' statementWrapper '}'
 					{
-					snprintf(line,lineSize, "\tGT(%d);\t\t\t\t// exit elif - l:%d\n",fi,numlin);
-					gc(line);
-					}
-					'}'
-					{
-					
 					int erasedElements = deleteScope(scope);
 					if(erasedElements > 0) {
 						r7Displacement -= erasedElements;
 						snprintf(line, lineSize, "\tR7 = R7 + %d;\t\t\t\t// Liberamos la pila de los elementos que eliminamos al abandonar el scope - l:%d\n", 4 * erasedElements, numlin);
 						gc(line);
 					}
-					
+
+					snprintf(line,lineSize, "\tGT(%d);\t\t\t\t// exit elif - l:%d\n",fi,numlin);
+					gc(line);
+
 					snprintf(line,lineSize, "L %d:\t\t\t\t\t\t// elif not - l:%d\n", $<int1>2,numlin);
 					gc(line);
 					};
@@ -1651,15 +1642,9 @@ int getAddress(enum type tipo, int length){
 
 	if (length == -1){
 		z = z - octetos;
-		if (z < minPila){
-			yyerror("Sin espacio en la memoria estática");
-		}
 		return z;
 	}else{
 		z = z - octetos * length;
-		if (z < minPila){
-			yyerror("Sin espacio en la memoria estática");
-		}
 		return z;
 	}
 	return -2;
