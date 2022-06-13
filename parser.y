@@ -297,13 +297,21 @@ main:           	INT MAIN '(' ')' '{'
 					}
 
 					statementWrapper '}'					{
+								
+						int erasedElements = deleteScope(scope);
+						if(erasedElements > 0) {
+							r7Displacement -= erasedElements;
+							snprintf(line, lineSize, "\tR7 = R7 + %d;\t\t\t\t// Liberamos la pila de los elementos que eliminamos al abandonar el scope - l:%d\n", 4 * erasedElements, numlin);
+							gc(line);
+						}
+						
 						snprintf(line, lineSize, "\tR0 = 0;\t\t\t\t// Exito\n");
 						gc(line);
-
+	
 						snprintf(line, lineSize, "\tGT(-2);\t\t\t\t// Fin del programa\n");
 						gc(line);
 
-						deleteScope(scope);
+						
 					};
 
 
@@ -471,6 +479,14 @@ forLoop: 	{$<int1>$ = co;}//1 								//Store previous continue tag
 					//14			15	16					17
 					varAssign ')' '{' statementWrapper '}'
 					{
+					
+					int erasedElements = deleteScope(scope);
+					if(erasedElements > 0) {
+						r7Displacement -= erasedElements;
+						snprintf(line, lineSize, "\tR7 = R7 + %d;\t\t\t\t// Liberamos la pila de los elementos que eliminamos al abandonar el scope - l:%d\n", 4 * erasedElements, numlin);
+						gc(line);
+					}
+					
 					co = $<int1>1;	// Retrieve previous continue tag
 					br = $<int1>2;	// Retrieve previous break tag
 					snprintf(line,lineSize, "\tGT(%d);\t\t\t\t// for repeat - l:%d\n", $<int1>3,numlin);
@@ -478,7 +494,6 @@ forLoop: 	{$<int1>$ = co;}//1 								//Store previous continue tag
 					snprintf(line,lineSize, "L %d:\t\t\t\t\t\t// for bre - l:%d\n", $<int1>4,numlin);
 					gc(line);
 
-					deleteScope(scope);
 					};
 
 whileLoop: 	{$<int1>$ = co;}//1 									//Store previous continue tag
@@ -501,13 +516,20 @@ whileLoop: 	{$<int1>$ = co;}//1 									//Store previous continue tag
 						}
 						'{' statementWrapper '}'
 						{
+						
+						int erasedElements = deleteScope(scope);
+						if(erasedElements > 0) {
+							r7Displacement -= erasedElements;
+							snprintf(line, lineSize, "\tR7 = R7 + %d;\t\t\t\t// Liberamos la pila de los elementos que eliminamos al abandonar el scope - l:%d\n", 4 * erasedElements, numlin);
+							gc(line);
+						}
+						
 						co = $<int1>1;	// Retrieve previous continue tag
 						br = $<int1>2;	// Retrieve previous break tag
 						snprintf(line,lineSize, "\tGT(%d);\t\t\t\t// while repeat - l:%d\n", $<int1>3,numlin);
 						gc(line);
 						snprintf(line,lineSize, "L %d:\t\t\t\t\t\t// while bre - l:%d\n", $<int1>4,numlin);
 						gc(line);
-						deleteScope(scope);
 						};
 
 
@@ -542,9 +564,16 @@ ifCond: 			{$<int1>$ = getTag();}	// if not
 							}
 							'}'
 							{
+							
+							int erasedElements = deleteScope(scope);
+							if(erasedElements > 0) {
+								r7Displacement -= erasedElements;
+								snprintf(line, lineSize, "\tR7 = R7 + %d;\t\t\t\t// Liberamos la pila de los elementos que eliminamos al abandonar el scope - l:%d\n", 4 * erasedElements, numlin);
+								gc(line);
+							}
+							
 							snprintf(line,lineSize, "L %d:\t\t\t\t\t\t// if not - l:%d\n", $<int1>1,numlin);
 							gc(line);
-							deleteScope(scope);
 							};
 
 elifCond: 			/* empty */
@@ -565,13 +594,26 @@ elifCond: 			/* empty */
 					}
 					'}'
 					{
+					
+					int erasedElements = deleteScope(scope);
+					if(erasedElements > 0) {
+						r7Displacement -= erasedElements;
+						snprintf(line, lineSize, "\tR7 = R7 + %d;\t\t\t\t// Liberamos la pila de los elementos que eliminamos al abandonar el scope - l:%d\n", 4 * erasedElements, numlin);
+						gc(line);
+					}
+					
 					snprintf(line,lineSize, "L %d:\t\t\t\t\t\t// elif not - l:%d\n", $<int1>2,numlin);
 					gc(line);
-					deleteScope(scope);
 					};
 
 elseCond: 			/* empty */
-|					ELSE '{' statementWrapper '}'								{deleteScope(scope);};
+|					ELSE '{' statementWrapper '}'	{	int erasedElements = deleteScope(scope);
+														if(erasedElements > 0) {
+															r7Displacement -= erasedElements;
+															snprintf(line, lineSize, "\tR7 = R7 + %d;\t\t\t\t// Liberamos la pila de los elementos que eliminamos al abandonar el scope - l:%d\n", 4 * erasedElements, numlin);
+															gc(line);
+														}
+													};
 
 
 

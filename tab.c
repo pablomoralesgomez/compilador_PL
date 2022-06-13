@@ -8,7 +8,9 @@
 
 struct nodo *primero = NULL;
 
-void deleteScope(int sc) {
+int deleteScope(int sc) {
+	
+	int res = 0;
 	
 	struct nodo *puntero = primero;
 	
@@ -16,9 +18,13 @@ void deleteScope(int sc) {
 		while(puntero != NULL && sc < puntero->scope) {
 			removeTop();
 			puntero = primero;
+			
+			res++;
 		}
 		
 	}
+	
+	return res;
 }
 
 

@@ -20,7 +20,7 @@ struct array {
 
 struct nodo * search(char* id, enum category categoria);
 int add(char* id, enum type tipo, enum category categoria, int scope, int address, struct array *array);
-void deleteScope(int sc);
+int deleteScope(int sc);
 void removeTop();
 void show();
 
